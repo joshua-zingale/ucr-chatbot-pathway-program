@@ -1,7 +1,11 @@
+"""This package contains a Flask application for a tutoring chatbot,
+including a public web interface and an API for interacting with the chatbot."""
+
 from flask import Flask
+from typing import Mapping, Any
 import os
 
-def create_app(test_config=None):
+def create_app(test_config: Mapping[str, Any] | None =None):
     app = Flask(__name__, instance_relative_config=True)
 
     if test_config is None:
@@ -9,14 +13,15 @@ def create_app(test_config=None):
         app.config.from_pyfile('config.py', silent=True)
     else:
         # load the test config if passed in
-        app.config.from_mapping(test_config)
+        app.config.from_mapping(test_config) # type: ignore
 
     # ensure the instance folder exists
     if not os.path.isdir(app.instance_path):
         os.makedirs(app.instance_path)
 
-    from .public import routes
-    app.register_blueprint(routes.bp)
-
+    from . import web_interface
+    from . import api
+    app.register_blueprint(web_interface.bp)
+    app.register_blueprint(api.bp)
 
     return app
