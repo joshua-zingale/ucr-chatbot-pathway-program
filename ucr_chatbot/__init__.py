@@ -19,7 +19,7 @@ def create_app(test_config: Mapping[str, Any] | None = None):
         app.config.from_pyfile("config.py", silent=True)
     else:
         # load the test config if passed in
-        app.config.from_mapping(test_config)  # type: ignore
+        app.config.from_mapping(test_config)
 
     # ensure the instance folder exists
     if not os.path.isdir(app.instance_path):
