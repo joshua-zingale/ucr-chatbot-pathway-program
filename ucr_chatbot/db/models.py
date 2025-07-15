@@ -145,7 +145,7 @@ class References(base):
     segment = Column(Integer, ForeignKey("Segments.id"), primary_key=True)
 
 
-base.metadata.drop_all(engine)
+# base.metadata.drop_all(engine)
 base.metadata.create_all(engine)
 
 
