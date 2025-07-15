@@ -6,7 +6,7 @@
 }
 body {
   margin: 0;
-  font-family: sans-serif;
+  font-family: "Fira Sans", sans-serif;
   display: flex;
   height: 100vh;
   background-color: #f7f7f8;
