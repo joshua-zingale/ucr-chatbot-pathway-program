@@ -1,7 +1,7 @@
 from flask import (
-    Blueprint, 
-    request, 
-    jsonify, 
+    Blueprint,
+    request,
+    jsonify,
     Response,
     render_template,
     url_for,
@@ -12,6 +12,7 @@ from .language_model.response import client as client
 import json
 
 bp = Blueprint("routes", __name__)
+
 
 @bp.route("/")
 def course_selection():
@@ -43,7 +44,9 @@ def conversation(conversation_id: int):
         body=f"Chat with me about the course for which the conversation with id {conversation_id} exists.",
     )
 
+
 # NOT RESPONSIBLE FOR THIS PART =================================================================================================
+
 
 @bp.route("/course/<int:course_id>/documents")
 def course_documents(course_id: int):
@@ -56,6 +59,7 @@ def course_documents(course_id: int):
         title="Landing Page",
         body=f"These are the documents for the course with id {course_id}",
     )
+
 
 # STUFF FROM SPRINT 1 ===========================================================================================================
 
@@ -71,6 +75,7 @@ If the context is not relevant, than you should tell the student, "I cannot find
 ## Question
 {question}
 """
+
 
 @bp.route("/generate", methods=["POST"])
 def generate():
@@ -96,7 +101,7 @@ def generate():
     segments = retriever.get_segments_for(prompt, num_segments=3)
     context = "\n".join(
         # Assuming each 's' object has 'segment_id' and 'text' attributes
-        map(lambda s: f"Reference number: {s.segment_id}, text: {s.text}", segments)
+        map(lambda s: f"Reference number: {s.id}, text: {s.text}", segments)
     )
 
     prompt_with_context = SYSTEM_PROMPT.format(context=context, question=prompt)
@@ -121,7 +126,7 @@ def generate():
         response_text = client.get_response(**generation_params)  # type: ignore
 
         # Dynamically create the list of source IDs
-        sources = [{"segment_id": s.segment_id} for s in segments]
+        sources = [{"segment_id": s.id} for s in segments]
 
         return jsonify(
             {
