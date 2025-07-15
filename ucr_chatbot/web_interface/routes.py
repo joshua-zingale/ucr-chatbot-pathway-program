@@ -4,18 +4,23 @@ from flask import (
     url_for,
     redirect,
 )
+from ucr_chatbot.db.models import *
+from sqlalchemy import select
 
 bp = Blueprint("routes", __name__)
 
-
 @bp.route("/")
 def course_selection():
-    """Responds with a landing page where a student can select a course"""
-    return render_template(
-        "base.html",
-        title="Landing Page",
-        body=f'Select your course. <a href="{url_for(".new_conversation", course_id="1")}"> CS009A </a>',
-    )
+    with Session(engine) as session:
+        stmt = (select(Courses).join(ParticipatesIn, Courses.id == ParticipatesIn.course_id).where(ParticipatesIn.email == 'test@ucr.edu'))
+        result = session.execute(stmt)
+
+        courses = []
+        for row in result:
+            courses.append(row[0])
+
+    return render_template("landing_page.html",courses=courses,)
+
 
 
 @bp.route("/course/<int:course_id>/chat")
