@@ -26,6 +26,9 @@ userMessageTextarea.addEventListener("keydown", (event) => {
 
 // Send message to interface
 async function handleSend(e) {
+
+  
+
   e.preventDefault();
   const textarea = document.getElementById("userMessage");
   const message = textarea.value.trim();
@@ -38,7 +41,7 @@ async function handleSend(e) {
   // FIX
   // Creates a new conversation
   if (isNewConversation) {
-    const courseId = path.split("/").pop();
+    const courseId = Number(path.split("/")[2]);
     const res = await fetch("/api/create_conversation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -95,7 +98,7 @@ async function loadConversation(id) {
   data.messages.forEach((msg) => {
     appendMessage(msg.sender, msg.text);
     if (msg.sender === "user") {
-      addSidebarMessage(msg.text);
+      addSidebarMessage(msg.text);aaaaa
     }
   });
 }

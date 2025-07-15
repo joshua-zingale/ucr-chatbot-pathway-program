@@ -4,20 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Chat</title>
-    <link rel="stylesheet" href="conversation.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='conversation.css') }}">
 
     <!-- FONTS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Sans&family=Oswald:wght@200..700&display=swap" rel="stylesheet">
-
   </head>
+
   <body>
     <!-- SIDEBAR -->
     <div id="sidebar" class="oswald">
       <h2>CONVERSATIONS</h2>
-      <div id="sidebar-messages">
-      </div>
+      <div id="sidebar-messages"></div>
     </div>
 
     <!-- MESSAGES -->
@@ -36,6 +35,7 @@
       </div>
     </div>
 
-    <script src="conversation.js"></script>
+
+    <script src="{{ url_for('static', filename='conversation.js') }}"></script>
   </body>
 </html>
