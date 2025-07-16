@@ -5,6 +5,7 @@ const userMessageTextarea = document.getElementById("userMessage");
 let conversationId = null;
 let isNewConversation = false;
 
+
 // Detect if this is a new conversation or not (for the sidebar)
 const path = window.location.pathname;
 if (path.startsWith("/new_conversation/")) {
@@ -13,9 +14,30 @@ if (path.startsWith("/new_conversation/")) {
   conversationId = path.split("/").pop();
 }
 
+
+async function loadAllConversationsForUser() {
+  sidebarMessages.innerHTML = "";
+
+  const res = await fetch("/api/conversations/get_conversations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  const conversationIds = await res.json();
+  conversationIds.reverse();
+
+  for (const convoId of conversationIds) {
+    addSidebarMessage(`Conversation ${convoId}`, convoId);
+  }
+}
+
+
 if (!isNewConversation && conversationId) {
   loadConversation(conversationId);
 }
+
+
+loadAllConversationsForUser();
 
 // Send message on Enter key press
 userMessageTextarea.addEventListener("keydown", (event) => {
@@ -34,10 +56,9 @@ async function handleSend(e) {
 
   appendMessage("user", message);
   textarea.value = "";
-
+   // Create new conversation
   if (isNewConversation) {
-    // Create new conversation
-    const courseId = path.split("/").pop();
+    const courseId = Number(path.split("/")[2]);
     const res = await fetch("/api/create_conversation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -47,10 +68,12 @@ async function handleSend(e) {
     const data = await res.json();
     conversationId = data.conversationId;
     isNewConversation = false;
+
+
     window.history.replaceState({}, "", `/conversation/${conversationId}`);
 
     // Add this conversation to the sidebar
-    addSidebarMessage(message, conversationId);
+    addSidebarMessage(`Conversation ${conversationId}`, conversationId);
 
     // Get bot response and show to interface
     const botResponse = await fetchBotReply(conversationId, message);
@@ -73,23 +96,27 @@ function appendMessage(sender, text) {
 }
 
 // Add convo to sidebar
-function addSidebarMessage(text, convoId) {
+function addSidebarMessage(label, convoId) {
   if (document.querySelector(`[data-convo-id="${convoId}"]`)) return;
 
   const item = document.createElement("div");
   item.classList.add("conversation-item");
-  item.textContent = text.length > 40 ? text.slice(0, 40) + "..." : text;
+  item.textContent = label;
   item.dataset.convoId = convoId;
 
   item.addEventListener("click", () => {
-    window.location.href = `/conversation/${convoId}`;
+    window.history.replaceState({}, "", `/conversation/${convoId}`);
+    conversationId = convoId;
+    chatContainer.innerHTML = "";
+    loadConversation(convoId);
   });
 
   if (window.location.pathname.endsWith(convoId)) {
     item.classList.add("active");
   }
 
-  sidebarMessages.appendChild(item);
+
+  sidebarMessages.insertBefore(item, sidebarMessages.firstChild);
 }
 
 // Load existing conversation and display messages
@@ -97,14 +124,11 @@ async function loadConversation(id) {
   const res = await fetch(`/api/conversations/${id}`);
   const data = await res.json();
 
-  data.messages.forEach((msg) => {
-    appendMessage(msg.sender, msg.text);
-  });
+  chatContainer.innerHTML = "";
 
-  const firstUserMessage = data.messages.find((m) => m.sender === "user");
-  if (firstUserMessage) {
-    addSidebarMessage(firstUserMessage.text, id);
-  }
+  data.messages.forEach((msg) => {
+    appendMessage(msg.sender === "StudentMessage" ? "user" : "bot", msg.body);
+  });
 }
 
 // Send message to backend for LM
