@@ -24,7 +24,7 @@ load_dotenv()
 password = os.getenv("DB_PASSWORD")
 
 engine = create_engine(
-    f"postgresql+psycopg://postgres:{password}@127.0.0.1:5432/testing_tutor"
+    f"postgresql+psycopg2://postgres:{password}@127.0.0.1:5432/testing_tutor"
 )
 
 base = declarative_base()

@@ -23,6 +23,7 @@ dependencies = [
     "pydub>=0.25.1",
     "google-generativeai>=0.8.5",
     "ollama>=0.5.1",
+    "psycopg2-binary",
 ]
 
 [tool.setuptools.packages.find]
