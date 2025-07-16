@@ -34,17 +34,23 @@ def create_app(test_config: Mapping[str, Any] | None = None):
     if test_config is None:
         # load the instance config, if it exists, when not testing
         app.config.from_pyfile("config.py", silent=True)
+        app.config["UPLOAD_FOLDER"] = upload_folder
+        # uploads folder is created
+        if not os.path.isdir(upload_folder):
+            os.makedirs(upload_folder)
+            for course in courses:
+                os.makedirs(os.path.join(upload_folder, course))
     else:
         # load the test config if passed in
         app.config.from_mapping(test_config)
-
-    app.config["UPLOAD_FOLDER"] = upload_folder
-
-    # uploads folder is created
-    if not os.path.isdir(upload_folder):
-        os.makedirs(upload_folder)
-        for course in courses:
-            os.makedirs(os.path.join(upload_folder, course))
+        test_folder = os.path.join(
+            os.path.abspath(os.path.dirname(__file__)), "test_uploads"
+        )
+        app.config["UPLOAD_FOLDER"] = test_folder
+        if not os.path.isdir(test_folder):
+            os.makedirs(test_folder)
+            for course in courses:
+                os.makedirs(os.path.join(test_folder, course))
 
     # ensure the instance folder exists
     if not os.path.isdir(app.instance_path):
