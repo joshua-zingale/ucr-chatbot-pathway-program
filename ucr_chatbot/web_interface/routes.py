@@ -35,7 +35,6 @@ def new_conversation(course_id: int):
     """
     return render_template("conversation.html", course_id=course_id)
 
-
 @bp.route("/conversation/<int:conversation_id>")
 def conversation(conversation_id: int):
     """Renders the conversation page for an existing conversation.

@@ -34,6 +34,7 @@ def new_conversation(course_id: int):
     return redirect(url_for(".conversation", conversation_id=course_id))
 
 
+
 @bp.route("/conversations/<int:conversation_id>")
 def conversation(conversation_id: int):
     """Responds with page where a student can interact with a chatbot for a course.
@@ -48,22 +49,8 @@ def conversation(conversation_id: int):
         )
         messages = session.execute(stmt).scalars().all()
 
-        type_map = {
-            MessageType.STUDENT_MESSAGES: "StudentMessage",
-            MessageType.BOT_MESSAGES: "BotMessage",
-        }
-        messages_list = []
-        for message in messages:
-            sender = type_map.get(message.type)  # type: ignore
-            message_dict = {
-                "id": message.id,
-                "body": message.body,
-                "sender": sender,
-                "timestamp": message.timestamp.isoformat(),
-            }
-            messages_list.append(message_dict)  # type: ignore
 
-        return jsonify({"messages": messages_list})
+
 
 
 user_email = "test@ucr.edu"
