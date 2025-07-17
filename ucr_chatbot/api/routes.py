@@ -10,7 +10,7 @@ from flask import (
 from .context_retrieval import retriever
 from .language_model.response import client as client
 import json
-from ucr_chatbot.db.models import *
+from ucr_chatbot.db.models import Session, engine, Messages, MessageType, Conversations
 from sqlalchemy import select, insert
 
 bp = Blueprint("routes", __name__)
@@ -34,7 +34,7 @@ def new_conversation(course_id: int):
     return redirect(url_for(".conversation", conversation_id=course_id))
 
 
-@bp.route("/conversation/<int:conversation_id>")
+@bp.route("/conversations/<int:conversation_id>")
 def conversation(conversation_id: int):
     """Responds with page where a student can interact with a chatbot for a course.
 
@@ -54,18 +54,16 @@ def conversation(conversation_id: int):
         }
         messages_list = []
         for message in messages:
-            sender = type_map.get(message.type)
+            sender = type_map.get(message.type)  # type: ignore
             message_dict = {
                 "id": message.id,
                 "body": message.body,
                 "sender": sender,
                 "timestamp": message.timestamp.isoformat(),
             }
-            messages_list.append(message_dict)
+            messages_list.append(message_dict)  # type: ignore
 
         return jsonify({"messages": messages_list})
-
-    r
 
 
 user_email = "test@ucr.edu"
@@ -76,6 +74,8 @@ def create_conversation():
     """Responds with a landing page where a student can select a course"""
 
     content = request.json
+    if not content:
+        return jsonify({"error": "Request body must be valid JSON"}), 400
     print(content["courseId"])
     print(content["message"])
     with Session(engine) as session:
@@ -97,13 +97,15 @@ def create_conversation():
 
 
 @bp.route("/conversations/<int:conversation_id>/reply", methods=["POST"])
-def reply_conversation(conversation_id):
-    content = request.json["userMessage"]
+def reply_conversation(conversation_id: int):
+    """Saves a placeholder bot reply to the database.
 
-    LLM_response = "LLM response"
+    :param conversation_id: The ID of the current conversation.
+    """
+    llm_response = "LLM response"
     with Session(engine) as session:
         insert_msg = insert(Messages).values(
-            body=LLM_response,
+            body=llm_response,
             conversation_id=conversation_id,
             type=MessageType.BOT_MESSAGES,
             written_by=user_email,
@@ -111,12 +113,18 @@ def reply_conversation(conversation_id):
         session.execute(insert_msg)
         session.commit()
 
-    return {"reply": LLM_response}
+    return {"reply": llm_response}
 
 
 @bp.route("/conversations/<int:conversation_id>/send", methods=["POST"])
-def send_message(conversation_id):
+def send_message(conversation_id: int):
+    """Saves a new user message to the database.
+
+    :param conversation_id: The ID of the current conversation.
+    """
     content = request.json
+    if not content:
+        return jsonify({"error": "Request body must be valid JSON"}), 400
     print("Input message: " + str(content["message"]))
     with Session(engine) as session:
         insert_msg = insert(Messages).values(
@@ -129,6 +137,26 @@ def send_message(conversation_id):
         session.commit()
 
     return {"status": "200"}
+
+
+@bp.route("/conversations/get_conversations", methods=["POST"])
+def get_conversations():
+    """Gets all conversation IDs for the test user."""
+    data = request.get_json()
+    course_id = data.get("courseId")
+
+    with Session(engine) as session:
+        stmt = (
+            select(Conversations.id)
+            .where(
+                Conversations.initiated_by == "test@ucr.edu",
+                Conversations.course_id == course_id,
+            )
+            .order_by(Conversations.id.desc())
+        )
+        result = session.execute(stmt).scalars().all()
+
+    return jsonify(result)
 
 
 @bp.route("/course/<int:course_id>/documents")
@@ -182,7 +210,7 @@ def generate():
     segments = retriever.get_segments_for(prompt, num_segments=3)
     context = "\n".join(
         # Assuming each 's' object has 'segment_id' and 'text' attributes
-        map(lambda s: f"Reference number: {s.segment_id}, text: {s.text}", segments)
+        map(lambda s: f"Reference number: {s.id}, text: {s.text}", segments)  # type: ignore
     )
 
     prompt_with_context = SYSTEM_PROMPT.format(context=context, question=prompt)
@@ -207,7 +235,7 @@ def generate():
         response_text = client.get_response(**generation_params)  # type: ignore
 
         # Dynamically create the list of source IDs
-        sources = [{"segment_id": s.segment_id} for s in segments]
+        sources = [{"segment_id": s.id} for s in segments]  # type: ignore
 
         return jsonify(
             {

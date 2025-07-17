@@ -1,32 +1,27 @@
 from flask import (
     Blueprint,
     render_template,
-    url_for,
-    redirect,
 )
-from ucr_chatbot.db.models import *
-from sqlalchemy import select, insert
+from ucr_chatbot.db.models import Session, engine, Courses, ParticipatesIn
+from sqlalchemy import select
 
+bp = Blueprint("web_routes", __name__)
 
-bp = Blueprint("routes", __name__)
+user_email = "test@ucr.edu"
 
 user_email = "test@ucr.edu"
 
 
 @bp.route("/")
 def course_selection():
-    print("web_interface")
+    """Renders the main landing page with a list of the user's courses."""
     with Session(engine) as session:
         stmt = (
             select(Courses)
             .join(ParticipatesIn, Courses.id == ParticipatesIn.course_id)
             .where(ParticipatesIn.email == user_email)
         )
-        result = session.execute(stmt)
-
-        courses = []
-        for row in result:
-            courses.append(row[0])
+        courses = session.execute(stmt).scalars().all()
 
     return render_template(
         "landing_page.html",
@@ -36,35 +31,30 @@ def course_selection():
 
 @bp.route("/new_conversation/<int:course_id>/chat")
 def new_conversation(course_id: int):
-    """Redirects to a page with a new conversation for a course.
+    """Renders the conversation page for a new conversation.
+
     :param course_id: The id of the course for which a conversation will be initialized.
     """
-
-    return render_template("conversation.html")
+    return render_template("conversation.html", course_id=course_id)
 
 
 @bp.route("/conversation/<int:conversation_id>")
 def conversation(conversation_id: int):
-    """Responds with page where a student can interact with a chatbot for a course.
+    """Renders the conversation page for an existing conversation.
 
-    :param conversation_id: The id of the conversation to be send back to the user.
+    :param conversation_id: The id of the conversation to be displayed.
     """
-    print("web con")
-    return render_template(
-        "conversation.html",
-        title="Landing Page",
-        body=f"Chat with me about the course2 for which the conversation with id {conversation_id} exists.",
-    )
+    return render_template("conversation.html", conversation_id=conversation_id)
 
 
 @bp.route("/course/<int:course_id>/documents")
 def course_documents(course_id: int):
-    """Responds with a page where a course administrator can add more documents
-    to the course for use by the retrieval-augmented generation system.
-    :param course_id: The id of the course for which a conversation will be initialized.
+    """Responds with a page for course document management.
+
+    :param course_id: The id of the course.
     """
     return render_template(
         "base.html",
-        title="Landing Page",
+        title="Course Documents",
         body=f"These are the documents for the course with id {course_id}",
     )
