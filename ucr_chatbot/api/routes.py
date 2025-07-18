@@ -1,9 +1,15 @@
-from flask import Blueprint, request, jsonify, Response
+from flask import (
+    Blueprint,
+    request,
+    jsonify,
+    Response,
+)
 from .context_retrieval import retriever
 from .language_model.response import client as client
 import json
 
 bp = Blueprint("routes", __name__)
+
 
 SYSTEM_PROMPT = """# Main directive
 You are a helpful student tutor for a university computer science course. You must assist students in their learning by answering question in a didactically useful way. You should only answer questions if you are certain that you know the correct answer.
@@ -43,7 +49,7 @@ def generate():
     segments = retriever.get_segments_for(prompt, num_segments=3)
     context = "\n".join(
         # Assuming each 's' object has 'segment_id' and 'text' attributes
-        map(lambda s: f"Reference number: {s.segment_id}, text: {s.text}", segments)
+        map(lambda s: f"Reference number: {s.id}, text: {s.text}", segments)  # type: ignore
     )
 
     prompt_with_context = SYSTEM_PROMPT.format(context=context, question=prompt)
@@ -68,7 +74,7 @@ def generate():
         response_text = client.get_response(**generation_params)  # type: ignore
 
         # Dynamically create the list of source IDs
-        sources = [{"segment_id": s.segment_id} for s in segments]
+        sources = [{"segment_id": s.id} for s in segments]  # type: ignore
 
         return jsonify(
             {

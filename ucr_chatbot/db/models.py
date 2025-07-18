@@ -27,7 +27,7 @@ upload_folder: str = os.path.join(os.path.abspath(os.path.dirname(__file__)), "u
 password = os.getenv("DB_PASSWORD")
 
 engine = create_engine(
-    f"postgresql+psycopg://postgres:{password}@127.0.0.1:5432/testing_tutor"
+    f"postgresql+psycopg2://postgres:{password}@127.0.0.1:5432/testing_tutor"
 )
 
 base = declarative_base()
@@ -147,6 +147,10 @@ class References(base):
     __tablename__ = "References"
     message = Column(Integer, ForeignKey("Messages.id"), primary_key=True)
     segment = Column(Integer, ForeignKey("Segments.id"), primary_key=True)
+
+
+# base.metadata.drop_all(engine)
+# base.metadata.create_all(engine)
 
 
 def add_new_user(email: str, first_name: str, last_name: str):
