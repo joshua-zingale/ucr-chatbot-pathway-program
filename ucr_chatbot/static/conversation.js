@@ -106,7 +106,6 @@ async function handleSend(e) {
     isNewConversation = false;
 
     window.history.replaceState({}, "", `/conversation/${conversationId}`);
-
     addSidebarMessage(`Conversation ${conversationId}`, conversationId);
 
     const botResponse = await fetchBotReply(message);

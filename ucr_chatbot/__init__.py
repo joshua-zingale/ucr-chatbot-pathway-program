@@ -12,6 +12,7 @@ def create_app(test_config: Mapping[str, Any] | None = None):
     :param test_config: If specified, sets the config for the returned Flask application, defaults to None
     :return: The Flask application.
     """
+
     app = Flask(__name__, instance_relative_config=True)
 
     if test_config is None:

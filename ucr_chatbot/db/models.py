@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     Text,
     Enum,
+    Boolean,
 )
 from sqlalchemy.orm import declarative_base, mapped_column, relationship, Session
 import enum
@@ -14,11 +15,13 @@ from pgvector.sqlalchemy import Vector  # type: ignore
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 import os
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import SQLAlchemyError
 
-from tabulate import tabulate
+from typing import Sequence
 
 load_dotenv()
+
+upload_folder: str = os.path.join(os.path.abspath(os.path.dirname(__file__)), "uploads")
 
 
 password = os.getenv("DB_PASSWORD")
@@ -94,6 +97,7 @@ class Documents(base):
     __tablename__ = "Documents"
     file_path = Column(String, primary_key=True)
     course_id = Column(Integer, ForeignKey("Courses.id"), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
 
     course = relationship("Courses", back_populates="documents")
     segments = relationship("Segments", back_populates="document", uselist=True)
@@ -150,38 +154,43 @@ class References(base):
 
 
 def add_new_user(email: str, first_name: str, last_name: str):
-    """Adds new user entry to Users table with the given parameters."""
+    """Adds new user entry to Users table with the given parameters.
+    :param email: new user's email address
+    :param first_name: new user's first name
+    :param last_name: new user's last_name
+    """
     with Session(engine) as session:
         try:
             new_user = Users(email=email, first_name=first_name, last_name=last_name)
 
             session.add_all([new_user])
             session.commit()
-            print("New user added successfully.\n")
-        except IntegrityError:
+        except SQLAlchemyError:
             session.rollback()
-            print("Error adding new user.\n")
 
 
-def add_new_course(id: int, name: str):
-    """Adds new course to the Courses table with the given parameters."""
+def add_new_course(name: str):
+    """Adds new course to the Courses table with the given parameters and creates a new upload folder for it.
+    :param id: id for course to be added
+    :param name: name of course to be added
+    """
     with Session(engine) as session:
         try:
-            new_course = Courses(
-                id=id,
-                name=name,
-            )
+            new_course = Courses(name=name)
 
             session.add(new_course)
             session.commit()
-            print("New course added successfully.\n")
-        except IntegrityError:
+
+            create_upload_folder(getattr(new_course, "id"))
+        except SQLAlchemyError:
             session.rollback()
-            print("Error adding new course.\n")
 
 
 def add_new_document(file_path: str, course_id: int):
-    """Adds new document to the Documents table with the given parameters."""
+    """Adds new document to the Documents table with the given parameters.
+    :param file_path: path pointing to where new document is stored.
+    :param course_id: id for course document was uploaded to.
+    """
     with Session(engine) as session:
         try:
             new_document = Documents(
@@ -190,32 +199,80 @@ def add_new_document(file_path: str, course_id: int):
             )
             session.add(new_document)
             session.commit()
-            print("Document added successfully.\n")
-        except IntegrityError:
+            print("Document added.")
+        except SQLAlchemyError:
             session.rollback()
-            print("Error adding document. Course id must exist.\n")
+            print("Document not added.")
 
 
-def print_users():
-    """prints all users and their information"""
+def set_document_inactive(file_path: str):
+    """Sets the is_active column of a document entry to false.
+    :param file_path: The file path of the document to be set inactive.
+    """
     with Session(engine) as session:
-        all_entries = session.query(Users).all()
-        rows: list[typing.Tuple[Column[str], Column[str], Column[str]]] = []
-
-        for row in all_entries:
-            rows.append((row.email, row.first_name, row.last_name))
-        print(tabulate(rows, headers="keys", tablefmt="psql"))
+        document = session.query(Documents).filter_by(file_path=file_path).first()
+        if document:
+            document.is_active = False  # type: ignore
+            session.commit()
 
 
-import typing
-
-
-def print_participation():
-    """prints all relationships between users and courses"""
+def get_active_documents() -> list[str]:
+    """Returns list of the file paths for all active documents in the database.
+    :return: list of the file paths for all active documents:
+    """
     with Session(engine) as session:
-        all_entries = session.query(ParticipatesIn).all()
-        rows: list[typing.Tuple[Column[str], Column[int], Column[str]]] = []
+        active_documents = session.query(Documents).filter_by(is_active=True)
+        file_paths: list[str] = []
 
-        for row in all_entries:
-            rows.append((row.email, row.course_id, row.role))
-        print(tabulate(rows, headers="keys", tablefmt="psql"))
+        for doc in active_documents:
+            file_paths.append(getattr(doc, "file_path"))
+
+        return file_paths
+
+
+def store_segment(segment_text: str, file_path: str) -> int:
+    """Creates new Segments instance and stores it into Segments table.
+    :param segment_text: The segment text to be added.
+    :param file_path: The file path of the document the segment was parsed from.
+    :return: An int representing the segment ID.
+    """
+    with Session(engine) as session:
+        # document = session.query(Documents).filter_by(file_path=file_path).first()
+        new_segment = Segments(
+            text=segment_text,
+            document_id=file_path,
+        )
+        session.add(new_segment)
+        session.flush()
+        segment_id = int(getattr(new_segment, "id"))
+        session.commit()
+
+        return segment_id
+
+
+def store_embedding(embedding: Sequence[float], segment_id: int):
+    """Creates new Embeddings instance and stores it into Embeddings table.
+    :param embedding: List of floats representing the vector embedding.
+    :param segment_id: ID for the segment the vector embedding represents.
+    """
+    with Session(engine) as session:
+        # segment = session.query(Segments).filter_by(id=segment_id).first()
+        try:
+            new_embedding = Embeddings(
+                vector=embedding,
+                segment_id=segment_id,
+            )
+            session.add(new_embedding)
+            session.commit()
+        except SQLAlchemyError:
+            session.rollback()
+
+
+def create_upload_folder(course_id: int):
+    """Creates a folder named after the course id within the uploads folder.
+    :param course_id: name of the folder to be created
+    """
+    if not os.path.isdir(upload_folder):
+        os.makedirs(upload_folder)
+
+    os.makedirs(os.path.join(upload_folder, str(course_id)))

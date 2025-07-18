@@ -149,16 +149,12 @@ def course_selection():
         )
         courses = session.execute(stmt).scalars().all()
 
-    return render_template(
-        "landing_page.html",
-        courses=courses,
-    )
+    return render_template("landing_page.html", courses=courses)
 
 
 @bp.route("/conversation/new/<int:course_id>/chat", methods=["GET", "POST"])
 def new_conversation(course_id: int):
-    """Renders the conversation page for a new conversation.
-
+    """Redirects to a page with a new conversation for a course.
     :param course_id: The id of the course for which a conversation will be initialized.
     """
     if (
@@ -179,9 +175,9 @@ def new_conversation(course_id: int):
 
 @bp.route("/conversation/<int:conversation_id>", methods=["GET", "POST"])
 def conversation(conversation_id: int):
-    """Renders the conversation page for an existing conversation.
+    """Responds with page where a student can interact with a chatbot for a course.
 
-    :param conversation_id: The id of the conversation to be displayed.
+    :param conversation_id: The id of the conversation to be send back to the user.
     """
 
     if (
@@ -213,14 +209,14 @@ def conversation(conversation_id: int):
         )
 
 
-@bp.route("/course/<int:course_id>/documents")
+@bp.route("/course/<int:course_id>/documents", methods=["GET", "POST"])
 def course_documents(course_id: int):
-    """Responds with a page for course document management.
-
-    :param course_id: The id of the course.
+    """Responds with a page where a course administrator can add more documents
+    to the course for use by the retrieval-augmented generation system.
+    :param course_id: The id of the course for which a conversation will be initialized.
     """
     return render_template(
         "base.html",
-        title="Course Documents",
+        title="Landing Page",
         body=f"These are the documents for the course with id {course_id}",
     )
