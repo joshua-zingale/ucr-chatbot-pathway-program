@@ -4,7 +4,7 @@ including a public web interface and an API for interacting with the chatbot."""
 from flask import Flask
 from typing import Mapping, Any
 import os
-# from .secret import GOOGLE_CLIENT_ID, GOOGLE_SECRET, SECRET_KEY
+from .secret import GOOGLE_CLIENT_ID, GOOGLE_SECRET, SECRET_KEY
 from .web_interface.routes import bp as web_bp
 from authlib.integrations.flask_client import OAuth 
 from flask_login import LoginManager
@@ -18,7 +18,7 @@ def create_app(test_config: Mapping[str, Any] | None = None):
     """
 
     app = Flask(__name__, instance_relative_config=True)
-    app.secret_key = "gewour;JHFLUYq?^63grvqkheFUKf"
+    app.secret_key = SECRET_KEY
     app.debug = True
 
     if test_config is None:
@@ -47,12 +47,12 @@ def create_app(test_config: Mapping[str, Any] | None = None):
         return Users.query.get(int(user_id))
 
     oauth = OAuth(app)  # type: ignore
-    # oauth.init_app(app)
+    oauth.init_app(app)
 
     oauth.register(  # type: ignore
         name="google",
-        client_id="421984993850-647o4cjgej2nm49eoraso0tnen380dqv.apps.googleusercontent.com",
-        client_secret="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",
+        client_id=GOOGLE_CLIENT_ID,
+        client_secret=GOOGLE_SECRET,
         server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
         client_kwargs={"scope": "openid profile email"},
     )
