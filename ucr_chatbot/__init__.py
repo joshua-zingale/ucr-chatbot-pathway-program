@@ -8,7 +8,7 @@ from .secret import GOOGLE_CLIENT_ID, GOOGLE_SECRET, SECRET_KEY
 from .web_interface.routes import bp as web_bp
 from authlib.integrations.flask_client import OAuth 
 from flask_login import LoginManager
-from ucr_chatbot.db.models import Users
+from ucr_chatbot.db.models import Users, Session, engine
 
 def create_app(test_config: Mapping[str, Any] | None = None):
     """Creates a Flask application for the UCR Chatbot.
@@ -19,7 +19,7 @@ def create_app(test_config: Mapping[str, Any] | None = None):
 
     app = Flask(__name__, instance_relative_config=True)
     app.secret_key = SECRET_KEY
-    app.debug = True
+    app.debug = False
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
@@ -35,7 +35,7 @@ def create_app(test_config: Mapping[str, Any] | None = None):
     from . import web_interface
     from . import api
 
-    app.config["SESSION_COOKIE_SECURE"] = False
+    app.config["SESSION_COOKIE_SECURE"] = True
     app.config["SESSION_COOKIE_HTTPONLY"] = True
 
     login_manager = LoginManager()
@@ -43,8 +43,9 @@ def create_app(test_config: Mapping[str, Any] | None = None):
     login_manager.login_view = "web_routes.login"  # type: ignore
 
     @login_manager.user_loader  # type: ignore
-    def load_user(user_id: int):  # pyright: ignore[reportUnusedFunction]
-        return Users.query.get(int(user_id))
+    def load_user(user_email: int):  # pyright: ignore[reportUnusedFunction]
+        with Session(engine) as session:
+            return session.query(Users).get(user_email)
 
     oauth = OAuth(app)  # type: ignore
     oauth.init_app(app)
