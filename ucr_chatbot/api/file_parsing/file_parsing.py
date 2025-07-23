@@ -10,7 +10,6 @@ from typing import List
 from pypdf import PdfReader
 from pathlib import Path
 
-
 class FileParsingError(ValueError):
     """File cannot be parsed."""
 
