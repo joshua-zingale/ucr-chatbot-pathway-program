@@ -3,7 +3,7 @@ including a public web interface and an API for interacting with the chatbot."""
 
 from flask import Flask
 from typing import Mapping, Any
-import os
+from pathlib import Path
 
 
 def create_app(test_config: Mapping[str, Any] | None = None):
@@ -23,8 +23,9 @@ def create_app(test_config: Mapping[str, Any] | None = None):
         app.config.from_mapping(test_config)
 
     # ensure the instance folder exists
-    if not os.path.isdir(app.instance_path):
-        os.makedirs(app.instance_path)
+    instance_path = Path(app.instance_path)
+    if not instance_path.is_dir():
+        instance_path.mkdir(parents=True, exist_ok=True)
 
     from . import web_interface
     from . import api

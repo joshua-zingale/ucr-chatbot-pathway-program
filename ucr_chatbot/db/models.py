@@ -15,13 +15,14 @@ from pgvector.sqlalchemy import Vector  # type: ignore
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 import os
+from pathlib import Path
 from sqlalchemy.exc import SQLAlchemyError
 
 from typing import Sequence
 
 load_dotenv()
 
-upload_folder: str = os.path.join(os.path.abspath(os.path.dirname(__file__)), "uploads")
+upload_folder: str = str(Path(__file__).resolve().parent / "uploads")
 
 
 password = os.getenv("DB_PASSWORD")
@@ -272,7 +273,9 @@ def create_upload_folder(course_id: int):
     """Creates a folder named after the course id within the uploads folder.
     :param course_id: name of the folder to be created
     """
-    if not os.path.isdir(upload_folder):
-        os.makedirs(upload_folder)
+    upload_path = Path(upload_folder)
+    if not upload_path.is_dir():
+        upload_path.mkdir(parents=True, exist_ok=True)
 
-    os.makedirs(os.path.join(upload_folder, str(course_id)))
+    course_path = upload_path / str(course_id)
+    course_path.mkdir(parents=True, exist_ok=True)
