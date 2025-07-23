@@ -1,6 +1,7 @@
 from flask.testing import FlaskClient
 import io
 import os
+from pathlib import Path
 from ucr_chatbot.db.models import upload_folder
 from db.helper_functions import *
 from unittest.mock import MagicMock
@@ -30,11 +31,11 @@ def test_file_upload(client: FlaskClient, monkeypatch):
     assert b"test_file.txt" in response.data
 
     app_instance = client.application
-    file_path = os.path.join(os.path.join(upload_folder, "1"), "test_file.txt")
-    assert os.path.exists(file_path)
-    with open(file_path, "rb") as f:
+    file_path = Path(upload_folder) / "1" / "test_file.txt"
+    assert file_path.exists()
+    with file_path.open("rb") as f:
         assert f.read() == b"Test file for CS009A"
-    os.remove(file_path)
+    file_path.unlink()
 
 
 def test_file_upload_empty(client: FlaskClient):
@@ -73,21 +74,21 @@ def test_file_download(client: FlaskClient, monkeypatch):
     response = client.post("/course/1/documents", data=data, content_type="multipart/form-data")
     assert "200 OK" == response.status
 
-    file_path = os.path.join("1", "test_file_download.txt")
-    response = client.get(f"/document/{file_path}/download")
+    file_path_rel = Path("1") / "test_file_download.txt"
+    response = client.get(f"/document/{file_path_rel}/download")
 
     assert "200 OK" == response.status
     assert response.data == b"Test file for CS009A"
 
-    file_path = os.path.join(upload_folder, file_path)
-    assert os.path.exists(file_path)
-    with open(file_path, "rb") as f:
+    file_path_abs = Path(upload_folder) / file_path_rel
+    assert file_path_abs.exists()
+    with file_path_abs.open("rb") as f:
         assert f.read() == b"Test file for CS009A"
 
     response = client.get("/")
     assert "200 OK" == response.status
 
-    os.remove(os.path.join(upload_folder,file_path))
+    file_path_abs.unlink()
 
 
 def test_file_delete(client: FlaskClient, monkeypatch):
@@ -102,14 +103,14 @@ def test_file_delete(client: FlaskClient, monkeypatch):
     response = client.post("/course/1/documents", data=data, content_type="multipart/form-data")
     assert "200 OK" == response.status
 
-    file_path = os.path.join("1", "test_file_delete.txt")
+    file_path_rel = Path("1") / "test_file_delete.txt"
 
-    response = client.post(f"document/{file_path}/delete")
+    response = client.post(f"document/{file_path_rel}/delete")
 
     assert "302 FOUND" == response.status
 
-    full_path = os.path.join(upload_folder,file_path)
-    assert os.path.exists(full_path)
-    with open(full_path, "rb") as f:
+    full_path = Path(upload_folder) / file_path_rel
+    assert full_path.exists()
+    with full_path.open("rb") as f:
         assert f.read() == b"Test file for CS009A"
-    os.remove(full_path)
+    full_path.unlink()

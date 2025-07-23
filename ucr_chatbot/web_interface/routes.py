@@ -10,7 +10,7 @@ from flask import (
 from werkzeug.utils import secure_filename  # ← new
 from werkzeug.datastructures import FileStorage  # ← new
 from sqlalchemy import select, insert
-import os  # ← new
+from pathlib import Path
 
 from ucr_chatbot.db.models import (
     Session,
@@ -237,7 +237,7 @@ def conversation(conversation_id: int):
 def course_documents(course_id: int):
     """Renders the documents page for a course.
     :param course_id: The id of the course for which documents are being managed."""
-    curr_path = upload_folder
+    curr_path = Path(upload_folder)
     error_msg = ""
 
     if request.method == "POST":
@@ -248,44 +248,46 @@ def course_documents(course_id: int):
         if not file.filename:
             return redirect(request.url)
 
-        full_local_path = ""
+        full_local_path = None
         try:
             filename = secure_filename(file.filename)
-            relative_path = os.path.join(str(course_id), filename).replace(
-                os.path.sep, "/"
+            relative_path = Path(str(course_id)) / filename
+            full_local_path = curr_path / relative_path
+
+            file.save(str(full_local_path))
+
+            segments = parse_file(str(full_local_path))
+            add_new_document(
+                str(relative_path).replace(str(Path().anchor), ""), course_id
             )
-            full_local_path = os.path.join(curr_path, relative_path)
-
-            file.save(full_local_path)
-
-            segments = parse_file(full_local_path)
-            add_new_document(relative_path, course_id)
             for seg in segments:
-                seg_id = store_segment(seg, relative_path)
+                seg_id = store_segment(
+                    seg, str(relative_path).replace(str(Path().anchor), "")
+                )
                 embedding = embed_text(seg)
                 store_embedding(embedding, seg_id)
 
         except (ValueError, TypeError):
-            if os.path.exists(full_local_path):
-                os.remove(full_local_path)
+            if full_local_path and full_local_path.exists():
+                full_local_path.unlink()
             error_msg = "<p style='color:red;'>You can't upload this type of file</p>"
 
     docs_html = ""
     active_docs = get_active_documents()
-    docs_dir = os.path.join(curr_path, str(course_id))
-    if os.path.isdir(docs_dir):
-        for idx, doc in enumerate(os.listdir(docs_dir), 1):
-            file_path = os.path.join(str(course_id), secure_filename(doc)).replace(
-                os.path.sep, "/"
-            )
+    docs_dir = curr_path / str(course_id)
+    if docs_dir.is_dir():
+        for idx, doc in enumerate(docs_dir.iterdir(), 1):
+            if not doc.is_file():
+                continue
+            file_path = f"{course_id}/{secure_filename(doc.name)}"
             if file_path not in active_docs:
                 continue
 
             docs_html += f"""
               <div style="margin-bottom:4px;">
-                  {idx}. <a href="{url_for(".download_file", file_path=file_path)}">{doc}</a>
+                  {idx}. <a href="{url_for(".download_file", file_path=file_path)}">{doc.name}</a>
                   <form action="{url_for(".delete_document", file_path=file_path)}" method="post" style="display:inline;">
-                      <button type="submit" onclick="return confirm('Delete {doc}?');">Delete</button>
+                      <button type="submit" onclick="return confirm('Delete {doc.name}?');">Delete</button>
                   </form>
               </div>
             """
@@ -298,16 +300,19 @@ def course_documents(course_id: int):
 def delete_document(file_path: str):
     """Handles file deletion requests.
     :param file_path: The path of the file to be deleted."""
-    file_path = file_path.replace(os.path.sep, "/")
-    full_path = os.path.join(upload_folder, file_path).replace(os.path.sep, "/")
+    file_path = file_path.replace(str(Path().anchor), "")
+    full_path = Path(upload_folder) / file_path
 
-    if os.path.exists(full_path):
-        # os.remove(full_path)  # physical delete optional
-        set_document_inactive(file_path)
+    if full_path.exists():
+        # full_path.unlink()  # physical delete optional
+        set_document_inactive(str(file_path))
 
     with Session(engine) as session:
         course_id = (
-            session.query(Documents).filter_by(file_path=file_path).first().course_id  # type: ignore
+            session.query(Documents)
+            .filter_by(file_path=str(file_path))
+            .first()
+            .course_id  # type: ignore
         )
 
     return redirect(url_for(".course_documents", course_id=course_id))
@@ -317,5 +322,7 @@ def delete_document(file_path: str):
 def download_file(file_path: str):
     """Handles file download requests.
     :param file_path: The path of the file to be downloaded."""
-    directory, name = os.path.split(file_path)
-    return send_from_directory(os.path.join(upload_folder, directory), name)
+    file_path_obj = Path(file_path)
+    directory = Path(upload_folder) / file_path_obj.parent
+    name = file_path_obj.name
+    return send_from_directory(str(directory), name)
