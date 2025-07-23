@@ -209,31 +209,36 @@ def _parse_pdf(pdf_file: BufferedIOBase, chars_per_seg: int, overlap: int) -> li
     :return: A list of segments of the textural representation of the pdf file.
     """
     reader = PdfReader(BytesIO(pdf_file.read()))
-    text = ""
+    all_text = []
     for page in reader.pages:
-        text += page.extract_text()
+        page_text = page.extract_text()
+        if page_text:
+            all_text.append(page_text)
+    text = "\n".join(all_text)
 
-    text = text.replace("\n", "")
+    # Do not strip first character, preserve newlines
     text = text.replace("  ", " ")
-    if text[0] == " ":
-        text = text[1:]
-
     total_text = text.rstrip()
 
     # Initial split of text by sentences
     sentences = total_text.split(".")
-    if sentences[-1] == "":
+    if sentences and sentences[-1] == "":
         sentences.pop(-1)
     for i in range(len(sentences)):
         sentences[i] += "."
 
-    # Making sure no sentence is too long or document doesn't us proper sentences (like a slide deck)
-    for i, sentence in enumerate(sentences):
+    # Making sure no sentence is too long or document doesn't use proper sentences (like a slide deck)
+    i = 0
+    while i < len(sentences):
+        sentence = sentences[i]
         if len(sentence) > (chars_per_seg / 2):
             temp_sentence = sentence
             sentences.pop(i)
             for j in range(0, len(temp_sentence), chars_per_seg):
-                sentences.append(temp_sentence[j : j + chars_per_seg])
+                sentences.insert(i, temp_sentence[j : j + chars_per_seg])
+                i += 1
+        else:
+            i += 1
 
     # Combining into larger sections, about chars_per_split
     segments: list[str] = []
@@ -245,11 +250,10 @@ def _parse_pdf(pdf_file: BufferedIOBase, chars_per_seg: int, overlap: int) -> li
             segments.append(curr_segment)
             curr_segment = ""
             for k in range(overlap, 0, -1):
-                curr_segment += sentences[i - k]
-
-    # for segment in segments:
-    #     print(segment)
-    #     print("------------------------------------")
+                if i - k >= 0:
+                    curr_segment += sentences[i - k]
+    if curr_segment:
+        segments.append(curr_segment)
 
     return segments
 
