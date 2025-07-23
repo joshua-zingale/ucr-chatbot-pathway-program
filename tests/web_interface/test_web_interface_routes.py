@@ -164,4 +164,33 @@ def test_chatroom_conversation_flow(client: FlaskClient):
     assert "reply" in data
     assert isinstance(data["reply"], str)
     assert len(data["reply"]) > 0
-    
+
+
+def test_api_generate_all_params(client: FlaskClient, monkeypatch):
+    mock_ollama_client = MagicMock()
+    fake_embedding = [0.1, -0.2, 0.3, 0.4]
+    mock_ollama_client.embeddings.return_value = {"embedding": fake_embedding}
+    monkeypatch.setattr("ucr_chatbot.api.embedding.embedding.client", mock_ollama_client)
+    payload = {
+        "prompt": "Explain the difference between a stack and a queue.",
+        "conversation_id": 123,
+        "stream": False,
+        "temperature": 0.7,
+        "max_tokens": 100,
+        "stop_sequences": ["\n", "END"]
+    }
+    response = client.post(
+        "/api/generate",
+        json=payload,
+        headers={"Accept": "application/json"}
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "text" in data
+    assert "sources" in data
+    assert "conversation_id" in data
+    assert data["conversation_id"] == 123
+    assert isinstance(data["sources"], list)
+    assert isinstance(data["text"], str)
+    assert len(data["text"]) > 0
+
