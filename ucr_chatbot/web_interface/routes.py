@@ -87,6 +87,7 @@ def get_conversation_ids(user_email: str, course_id: int):
     return jsonify(result)
 
 
+
 def create_conversation(course_id: int, user_email: str, message: str):
     """Initializes a new conversation in the database
 
@@ -144,7 +145,7 @@ def send_conversation(conversation_id: int, user_email: str, message: str):
     :param user_email: The id of the user
     :param message: The message to be stored
     """
-
+    
     with Session(engine) as session:
         insert_msg = insert(Messages).values(
             body=message,
@@ -196,8 +197,7 @@ def new_conversation(course_id: int):
             return create_conversation(course_id, user_email, content["message"])
 
     return render_template("conversation.html", course_id=course_id)
-
-
+  
 @bp.route("/conversation/<int:conversation_id>", methods=["GET", "POST"])
 def conversation(conversation_id: int):
     """Renders the conversation page for an existing conversation.
@@ -237,6 +237,7 @@ def conversation(conversation_id: int):
 def course_documents(course_id: int):
     """Renders the documents page for a course.
     :param course_id: The id of the course for which documents are being managed."""
+
     curr_path = Path(upload_folder)
     error_msg = ""
 
@@ -264,6 +265,7 @@ def course_documents(course_id: int):
                 seg_id = store_segment(
                     seg, str(relative_path).replace(str(Path().anchor), "")
                 )
+
                 embedding = embed_text(seg)
                 store_embedding(embedding, seg_id)
 
@@ -280,6 +282,7 @@ def course_documents(course_id: int):
             if not doc.is_file():
                 continue
             file_path = f"{course_id}/{secure_filename(doc.name)}"
+
             if file_path not in active_docs:
                 continue
 
@@ -288,6 +291,7 @@ def course_documents(course_id: int):
                   {idx}. <a href="{url_for(".download_file", file_path=file_path)}">{doc.name}</a>
                   <form action="{url_for(".delete_document", file_path=file_path)}" method="post" style="display:inline;">
                       <button type="submit" onclick="return confirm('Delete {doc.name}?');">Delete</button>
+
                   </form>
               </div>
             """
@@ -313,6 +317,7 @@ def delete_document(file_path: str):
             .filter_by(file_path=str(file_path))
             .first()
             .course_id  # type: ignore
+
         )
 
     return redirect(url_for(".course_documents", course_id=course_id))
@@ -322,6 +327,7 @@ def delete_document(file_path: str):
 def download_file(file_path: str):
     """Handles file download requests.
     :param file_path: The path of the file to be downloaded."""
+
     file_path_obj = Path(file_path)
     directory = Path(upload_folder) / file_path_obj.parent
     name = file_path_obj.name
