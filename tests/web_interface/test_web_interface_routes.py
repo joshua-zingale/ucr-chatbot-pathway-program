@@ -117,7 +117,10 @@ def test_file_delete(client: FlaskClient, monkeypatch):
 
 
 def test_chatroom_conversation_flow(client: FlaskClient):
-    # Step 1: Initialize a new conversation by sending a message
+    from ucr_chatbot.db.models import add_new_user, add_new_course
+
+    add_new_user("test@ucr.edu", "Test", "User")
+    add_new_course("Test Course")
     course_id = 1
     init_message = "Hello, I need help with my homework."
     response = client.post(
@@ -130,7 +133,6 @@ def test_chatroom_conversation_flow(client: FlaskClient):
     assert "conversationId" in data
     conversation_id = data["conversationId"]
 
-    # Step 2: Ensure a response from the language model is received
     response = client.post(
         f"/conversation/{conversation_id}",
         json={"type": "reply", "message": init_message},
@@ -142,7 +144,6 @@ def test_chatroom_conversation_flow(client: FlaskClient):
     assert isinstance(data["reply"], str)
     assert len(data["reply"]) > 0
 
-    # Step 3: Send a follow-up message as a student
     followup_message = "Can you explain recursion?"
     response = client.post(
         f"/conversation/{conversation_id}",
@@ -153,7 +154,6 @@ def test_chatroom_conversation_flow(client: FlaskClient):
     data = response.get_json()
     assert data["status"] == "200"
 
-    # Step 4: Ensure a follow-up response from the AI is received
     response = client.post(
         f"/conversation/{conversation_id}",
         json={"type": "reply", "message": followup_message},
