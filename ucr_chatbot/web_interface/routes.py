@@ -87,7 +87,6 @@ def get_conversation_ids(user_email: str, course_id: int):
     return jsonify(result)
 
 
-
 def create_conversation(course_id: int, user_email: str, message: str):
     """Initializes a new conversation in the database
 
@@ -145,7 +144,7 @@ def send_conversation(conversation_id: int, user_email: str, message: str):
     :param user_email: The id of the user
     :param message: The message to be stored
     """
-    
+
     with Session(engine) as session:
         insert_msg = insert(Messages).values(
             body=message,
@@ -197,7 +196,8 @@ def new_conversation(course_id: int):
             return create_conversation(course_id, user_email, content["message"])
 
     return render_template("conversation.html", course_id=course_id)
-  
+
+
 @bp.route("/conversation/<int:conversation_id>", methods=["GET", "POST"])
 def conversation(conversation_id: int):
     """Renders the conversation page for an existing conversation.
@@ -317,7 +317,6 @@ def delete_document(file_path: str):
             .filter_by(file_path=str(file_path))
             .first()
             .course_id  # type: ignore
-
         )
 
     return redirect(url_for(".course_documents", course_id=course_id))
