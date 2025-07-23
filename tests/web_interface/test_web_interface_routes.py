@@ -168,7 +168,7 @@ def test_chatroom_conversation_flow(client: FlaskClient):
 
 def test_api_generate_all_params(client: FlaskClient, monkeypatch):
     mock_ollama_client = MagicMock()
-    fake_embedding = [0.1, -0.2, 0.3, 0.4]
+    fake_embedding = [0.1, -0.2, 0.3]
     mock_ollama_client.embeddings.return_value = {"embedding": fake_embedding}
     monkeypatch.setattr("ucr_chatbot.api.embedding.embedding.client", mock_ollama_client)
     payload = {
