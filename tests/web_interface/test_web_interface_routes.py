@@ -114,3 +114,53 @@ def test_file_delete(client: FlaskClient, monkeypatch):
     with full_path.open("rb") as f:
         assert f.read() == b"Test file for CS009A"
     full_path.unlink()
+
+
+def test_chatroom_conversation_flow(client: FlaskClient):
+    # Step 1: Initialize a new conversation by sending a message
+    course_id = 1
+    init_message = "Hello, I need help with my homework."
+    response = client.post(
+        f"/conversation/new/{course_id}/chat",
+        json={"type": "create", "message": init_message},
+        headers={"Accept": "application/json"}
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "conversationId" in data
+    conversation_id = data["conversationId"]
+
+    # Step 2: Ensure a response from the language model is received
+    response = client.post(
+        f"/conversation/{conversation_id}",
+        json={"type": "reply", "message": init_message},
+        headers={"Accept": "application/json"}
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "reply" in data
+    assert isinstance(data["reply"], str)
+    assert len(data["reply"]) > 0
+
+    # Step 3: Send a follow-up message as a student
+    followup_message = "Can you explain recursion?"
+    response = client.post(
+        f"/conversation/{conversation_id}",
+        json={"type": "send", "message": followup_message},
+        headers={"Accept": "application/json"}
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["status"] == "200"
+
+    # Step 4: Ensure a follow-up response from the AI is received
+    response = client.post(
+        f"/conversation/{conversation_id}",
+        json={"type": "reply", "message": followup_message},
+        headers={"Accept": "application/json"}
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "reply" in data
+    assert isinstance(data["reply"], str)
+    assert len(data["reply"]) > 0
