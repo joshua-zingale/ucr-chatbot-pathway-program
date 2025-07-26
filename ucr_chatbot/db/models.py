@@ -17,6 +17,9 @@ from dotenv import load_dotenv
 import os
 from sqlalchemy.exc import SQLAlchemyError
 
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+
 from typing import Sequence
 
 load_dotenv()
@@ -41,17 +44,45 @@ class MessageType(enum.Enum):
     BOT_MESSAGES = "BotMessage"
 
 
-class Users(base):
+class Users(base, UserMixin):
     """Represents a User and their profile information"""
 
     __tablename__ = "Users"
     email = Column(String, primary_key=True)
     first_name = Column(String)
     last_name = Column(String)
+    password_hash = Column(String(255), nullable=False) 
 
     conversations = relationship("Conversations", back_populates="user", uselist=True)
     messages = relationship("Messages", back_populates="user", uselist=True)
     participates = relationship("ParticipatesIn", back_populates="user")
+
+    def set_password(self, password: str):
+        """Takes a plain text password and uses generate_password_hash
+        to create a hashed version of the password. Then it stores the
+        hashed password in the password_hash attribute of the user
+        instance.
+        :param password: plain text password
+        :type password: str
+
+        """
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        """Takes a plain text password and uses check_password_hash
+        to compare the plain version with the stored hashed
+        password. It returns True if the password matches the hash.
+        :param password: plain text password
+        :type password: str
+        :return: True if the password matches the hash,
+        False if otherwise
+        :rtype: bool
+        """
+        return check_password_hash(self.password_hash, password)
+
+    def get_id(self):
+        """Return the ID used for Flask-Login session tracking."""
+        return self.email  # Flask-Login uses this to store user ID in session
 
 
 class ParticipatesIn(base):
@@ -153,7 +184,7 @@ class References(base):
 # base.metadata.create_all(engine)
 
 
-def add_new_user(email: str, first_name: str, last_name: str):
+def add_new_user(email: str, first_name: str, last_name: str, password: str):
     """Adds new user entry to Users table with the given parameters.
     :param email: new user's email address
     :param first_name: new user's first name
@@ -161,9 +192,15 @@ def add_new_user(email: str, first_name: str, last_name: str):
     """
     with Session(engine) as session:
         try:
-            new_user = Users(email=email, first_name=first_name, last_name=last_name)
+            new_user = Users(
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                password_hash="",  # temporary, will set below
+            )
+            new_user.set_password(password)
 
-            session.add_all([new_user])
+            session.add(new_user)
             session.commit()
         except SQLAlchemyError:
             session.rollback()
@@ -276,3 +313,13 @@ def create_upload_folder(course_id: int):
         os.makedirs(upload_folder)
 
     os.makedirs(os.path.join(upload_folder, str(course_id)))
+
+if __name__ == '__main__':
+    # Example: add a test user
+    add_new_user(
+        email="tylertulowitzki32207@gmail.com",
+        first_name="Tyler",
+        last_name="Tulowitzki",
+        password="password123"
+    )
+    print("User added.")
