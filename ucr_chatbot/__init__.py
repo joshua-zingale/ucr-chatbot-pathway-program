@@ -9,6 +9,7 @@ from .web_interface.routes import bp as web_bp
 from authlib.integrations.flask_client import OAuth 
 from flask_login import LoginManager
 from ucr_chatbot.db.models import Users, Session, engine
+from flask_wtf.csrf import generate_csrf
 
 def create_app(test_config: Mapping[str, Any] | None = None):
     """Creates a Flask application for the UCR Chatbot.
@@ -37,6 +38,7 @@ def create_app(test_config: Mapping[str, Any] | None = None):
 
     app.config["SESSION_COOKIE_SECURE"] = True
     app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["MAX_LOGIN_ATTEMPTS"] = 3
 
     login_manager = LoginManager()
     login_manager.init_app(app)  # type: ignore
@@ -59,6 +61,11 @@ def create_app(test_config: Mapping[str, Any] | None = None):
     )
 
     app.oauth = oauth  # type: ignore[attr-defined]
+
+    @app.context_processor
+    def inject_csrf_token():
+        return dict(csrf_token=generate_csrf())
+
 
     app.register_blueprint(web_interface.bp)
     app.register_blueprint(api.bp)
