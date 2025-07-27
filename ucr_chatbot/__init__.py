@@ -4,13 +4,14 @@ including a public web interface and an API for interacting with the chatbot."""
 from flask import Flask  # type: ignore
 from typing import Mapping, Any
 import os
-from .secret import GOOGLE_CLIENT_ID, GOOGLE_SECRET, SECRET_KEY
+# from .secret import GOOGLE_CLIENT_ID, GOOGLE_SECRET, SECRET_KEY
 
 # from .web_interface.routes import bp as bp
 from authlib.integrations.flask_client import OAuth  # type: ignore
 from flask_login import LoginManager  # type: ignore
 from ucr_chatbot.db.models import Users, Session, engine
 from ucr_chatbot.web_interface.routes import bp
+from dotenv import load_dotenv
 
 
 def create_app(test_config: Mapping[str, Any] | None = None):
@@ -20,8 +21,10 @@ def create_app(test_config: Mapping[str, Any] | None = None):
     :return: The Flask application.
     """
 
+    load_dotenv()
+
     app = Flask(__name__, instance_relative_config=True)
-    app.secret_key = SECRET_KEY
+    app.secret_key = os.environ.get("SECRET_KEY", "fallback-dev-secret")
     app.debug = False
 
     if test_config is None:
@@ -56,8 +59,8 @@ def create_app(test_config: Mapping[str, Any] | None = None):
 
     oauth.register(  # type: ignore
         name="google",
-        client_id=GOOGLE_CLIENT_ID,
-        client_secret=GOOGLE_SECRET,
+        client_id=os.environ.get("GOOGLE_CLIENT_ID"),
+        client_secret=os.environ.get("GOOGLE_SECRET"),
         server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
         client_kwargs={"scope": "openid profile email"},
     )
