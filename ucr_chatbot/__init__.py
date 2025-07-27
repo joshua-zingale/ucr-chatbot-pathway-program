@@ -1,15 +1,17 @@
 """This package contains a Flask application for a tutoring chatbot,
 including a public web interface and an API for interacting with the chatbot."""
 
-from flask import Flask
+from flask import Flask  # type: ignore
 from typing import Mapping, Any
 import os
 from .secret import GOOGLE_CLIENT_ID, GOOGLE_SECRET, SECRET_KEY
-from .web_interface.routes import bp as web_bp
-from authlib.integrations.flask_client import OAuth 
-from flask_login import LoginManager
+
+# from .web_interface.routes import bp as bp
+from authlib.integrations.flask_client import OAuth  # type: ignore
+from flask_login import LoginManager  # type: ignore
 from ucr_chatbot.db.models import Users, Session, engine
-from flask_wtf.csrf import generate_csrf
+from ucr_chatbot.web_interface.routes import bp
+
 
 def create_app(test_config: Mapping[str, Any] | None = None):
     """Creates a Flask application for the UCR Chatbot.
@@ -33,7 +35,7 @@ def create_app(test_config: Mapping[str, Any] | None = None):
     if not os.path.isdir(app.instance_path):
         os.makedirs(app.instance_path)
 
-    from . import web_interface
+    # from . import web_interface
     from . import api
 
     app.config["SESSION_COOKIE_SECURE"] = True
@@ -50,7 +52,7 @@ def create_app(test_config: Mapping[str, Any] | None = None):
             return session.query(Users).get(user_email)
 
     oauth = OAuth(app)  # type: ignore
-    oauth.init_app(app)
+    oauth.init_app(app)  # type: ignore
 
     oauth.register(  # type: ignore
         name="google",
@@ -62,12 +64,8 @@ def create_app(test_config: Mapping[str, Any] | None = None):
 
     app.oauth = oauth  # type: ignore[attr-defined]
 
-    @app.context_processor
-    def inject_csrf_token():
-        return dict(csrf_token=generate_csrf())
-
-
-    app.register_blueprint(web_interface.bp)
+    # app.register_blueprint(web_interface.bp)
+    app.register_blueprint(bp)
     app.register_blueprint(api.bp)
 
     return app
