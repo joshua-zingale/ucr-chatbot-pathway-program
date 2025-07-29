@@ -17,6 +17,13 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 from sqlalchemy.exc import SQLAlchemyError
+import pandas as pd
+from typing import cast
+import secrets
+import string
+
+from flask_login import UserMixin  # type: ignore
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from typing import Sequence
 
@@ -42,17 +49,48 @@ class MessageType(enum.Enum):
     BOT_MESSAGES = "BotMessage"
 
 
-class Users(base):
+class Users(base, UserMixin):
     """Represents a User and their profile information"""
 
     __tablename__ = "Users"
     email = Column(String, primary_key=True)
     first_name = Column(String)
     last_name = Column(String)
+    password_hash = Column(String(255), nullable=False)
 
     conversations = relationship("Conversations", back_populates="user", uselist=True)
     messages = relationship("Messages", back_populates="user", uselist=True)
     participates = relationship("ParticipatesIn", back_populates="user")
+
+    def set_password(self, password: str):
+        """Takes a plain text password and uses generate_password_hash
+        to create a hashed version of the password. Then it stores the
+        hashed password in the password_hash attribute of the user
+        instance.
+        :param password: plain text password
+        :type password: str
+
+        """
+        print("User " + self.email + " password:" + password)
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        """Takes a plain text password and uses check_password_hash
+        to compare the plain version with the stored hashed
+        password. It returns True if the password matches the hash.
+        :param password: plain text password
+        :type password: str
+        :return: True if the password matches the hash,
+        False if otherwise
+        :rtype: bool
+        """
+        return check_password_hash(
+            cast(str, self.password_hash), generate_password_hash(password)
+        )
+
+    def get_id(self) -> str:
+        """Return the ID used for Flask-Login session tracking."""
+        return str(self.email)  # Flask-Login uses this to store user ID in session
 
 
 class ParticipatesIn(base):
@@ -162,12 +200,67 @@ def add_new_user(email: str, first_name: str, last_name: str):
     """
     with Session(engine) as session:
         try:
-            new_user = Users(email=email, first_name=first_name, last_name=last_name)
+            alphabet = string.ascii_letters + string.digits
+            password = "".join(secrets.choice(alphabet) for _ in range(10))
+            new_user = Users(
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                password_hash="",
+            )
+            new_user.set_password(password)
 
-            session.add_all([new_user])
+            session.add(new_user)
             session.commit()
         except SQLAlchemyError:
             session.rollback()
+
+
+def add_user_to_course(
+    email: str, first_name: str, last_name: str, course_id: int, role: str
+):
+    """Adds a user to the specified course.
+    :param email: The email for the user to be added.
+    :param first_name: The first name for the user to be added.
+    :param last_name: The last name for the user to be added.
+    :param course_id: The course the user will be added to.
+    :param role: The role of the user in the course."""
+    with Session(engine) as session:
+        user = session.query(Users).filter(Users.email == email).first()
+        if not user:
+            add_new_user(email, first_name, last_name)
+
+        participation_status = (
+            session.query(ParticipatesIn)
+            .filter(
+                ParticipatesIn.email == email,
+                ParticipatesIn.course_id == course_id,
+                ParticipatesIn.role == role,
+            )
+            .first()
+        )
+        if not participation_status:
+            new_participation = ParticipatesIn(
+                email=email, course_id=course_id, role=role
+            )
+            session.add(new_participation)
+            session.commit()
+            print("User added to course.")
+
+
+def add_students_from_list(data: pd.DataFrame, course_id: int):
+    """Adds students to course from a passed in list.
+    :param data: Pandas dataframe containing student information.
+    :param course_id: Course the students will be added to."""
+    with Session(engine) as session:
+        course = session.query(Courses).filter(Courses.id == course_id).first()
+        if course:
+            for _, row in data.iterrows():
+                row: pd.Series
+                email = str(row["SIS User ID"]) + "@ucr.edu"
+                fname = str(row["First Name"])
+                lname = str(row["Last Name"])
+                add_user_to_course(email, fname, lname, course_id, "student")
 
 
 def add_new_course(name: str):
