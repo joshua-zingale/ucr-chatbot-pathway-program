@@ -15,16 +15,14 @@ from flask import (
     make_response,
 )
 
-from werkzeug.utils import secure_filename  # ← new
-from werkzeug.datastructures import FileStorage  # ← new
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, func
 from pathlib import Path
 import pandas as pd
 import io
+import os
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 from werkzeug.security import check_password_hash
-from sqlalchemy import select, insert, func
 from flask_login import current_user, login_required, login_user, logout_user  # type: ignore
 from datetime import datetime, timedelta, timezone
 from ucr_chatbot.decorators import roles_required
@@ -511,7 +509,7 @@ def course_documents(course_id: int):
 
     docs_html = ""
     active_docs = get_active_documents()
-    docs_dir = curr_path / str(course_id)
+    docs_dir = Path(curr_path) / str(course_id)
     if docs_dir.is_dir():
         for idx, doc in enumerate(docs_dir.iterdir(), 1):
             if not doc.is_file():

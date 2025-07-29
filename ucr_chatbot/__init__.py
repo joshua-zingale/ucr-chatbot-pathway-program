@@ -4,6 +4,7 @@ including a public web interface and an API for interacting with the chatbot."""
 from flask import Flask  # type: ignore
 from typing import Mapping, Any
 from pathlib import Path
+import os
 # from .secret import GOOGLE_CLIENT_ID, GOOGLE_SECRET, SECRET_KEY
 
 # from .web_interface.routes import bp as bp
@@ -12,7 +13,6 @@ from flask_login import LoginManager  # type: ignore
 from ucr_chatbot.db.models import Users, Session, engine
 from ucr_chatbot.web_interface.routes import bp
 from dotenv import load_dotenv
-
 
 
 def create_app(test_config: Mapping[str, Any] | None = None):
