@@ -88,6 +88,80 @@ def test_generate_passes_parameters_to_client(client, monkeypatch):
     assert call_kwargs['stop_sequences'] == ["\n", "User:"]
 
 
+def test_generate_with_all_parameters(client, monkeypatch):
+    """
+    Tests the /api/generate endpoint with ALL valid parameters to ensure
+    comprehensive coverage of the API functionality.
+    """
+    # Mock the dependencies
+    mock_llm_client = MagicMock()
+    mock_retriever = MagicMock()
+
+    # Configure mock return values
+    mock_segments = [
+        MagicMock(id=1, text="First relevant context"),
+        MagicMock(id=2, text="Second relevant context"),
+        MagicMock(id=3, text="Third relevant context")
+    ]
+    mock_retriever.get_segments_for.return_value = mock_segments
+    mock_llm_client.get_response.return_value = "Comprehensive test response with all parameters."
+
+    # Apply mocks
+    monkeypatch.setattr("ucr_chatbot.api.routes.client", mock_llm_client)
+    monkeypatch.setattr("ucr_chatbot.api.routes.retriever", mock_retriever)
+
+    # Test with ALL valid parameters
+    request_data = {
+        "prompt": "What is the difference between Python and JavaScript?",
+        "conversation_id": 12345,
+        "stream": False,
+        "temperature": 0.7,
+        "max_tokens": 1500,
+        "stop_sequences": ["\n\n", "Question:", "Answer:"]
+    }
+
+    response = client.post('/api/generate', json=request_data)
+
+    # Assert response status and structure
+    assert response.status_code == 200
+    response_data = response.get_json()
+    
+    # Verify response contains expected fields
+    assert "text" in response_data
+    assert "sources" in response_data
+    assert "conversation_id" in response_data
+    
+    # Verify response values
+    assert response_data["text"] == "Comprehensive test response with all parameters."
+    assert response_data["conversation_id"] == 12345
+    assert response_data["sources"] == [
+        {"segment_id": 1},
+        {"segment_id": 2}, 
+        {"segment_id": 3}
+    ]
+
+    # Verify that retriever was called with correct parameters
+    mock_retriever.get_segments_for.assert_called_once_with(
+        "What is the difference between Python and JavaScript?", 
+        num_segments=3
+    )
+
+    # Verify that LLM client was called with all parameters
+    mock_llm_client.get_response.assert_called_once()
+    _, call_kwargs = mock_llm_client.get_response.call_args
+    
+    # Check that the prompt includes the system prompt formatting
+    assert "Main directive" in call_kwargs['prompt']
+    assert "Context" in call_kwargs['prompt']
+    assert "Question" in call_kwargs['prompt']
+    assert "What is the difference between Python and JavaScript?" in call_kwargs['prompt']
+    
+    # Verify all parameters were passed correctly
+    assert call_kwargs['max_tokens'] == 1500
+    assert call_kwargs['temperature'] == 0.7
+    assert call_kwargs['stop_sequences'] == ["\n\n", "Question:", "Answer:"]
+
+
 def test_generate_missing_prompt_returns_400(client):
     """
     Tests that a 400 Bad Request error is returned if 'prompt' is missing.
