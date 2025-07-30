@@ -3,7 +3,7 @@ import io
 import os
 from pathlib import Path
 from ucr_chatbot.db.models import upload_folder, Users, engine, Session, ParticipatesIn
-from db.helper_functions import *
+from tests.db.helper_functions import *
 from unittest.mock import MagicMock
 from sqlalchemy import insert, select, delete, inspect
 
@@ -119,41 +119,19 @@ def test_file_download(client: FlaskClient, monkeypatch, app):
     
     response = client.get("/course/1/documents")
     assert response.status_code == 200
-    os.remove(full_file_path)
+    os.remove(str(file_path_abs))
+
+
+
 
 
 def test_file_delete(client: FlaskClient, monkeypatch, app):
     with app.app_context():
-        with Session(engine) as session:
-            existing_user = session.query(Users).filter_by(email="testdelete@ucr.edu").first()
-            if existing_user:
-                session.query(ParticipatesIn).filter_by(email="testdelete@ucr.edu").delete()
-                session.delete(existing_user)
-                session.commit()
-
-            user = Users(
-                email="testdelete@ucr.edu",
-                first_name="John",
-                last_name="Doe",
-                password_hash=generate_password_hash("test123"),
-            )
-            session.add(user)
-            session.commit()
-
-            participation = ParticipatesIn(email="testdelete@ucr.edu", course_id=1, role="instructor")
-            session.add(participation)
-            session.commit()
+        add_new_user("testdelete@ucr.edu", "John", "Doe")
+        add_user_to_course("testdelete@ucr.edu", "John", "Doe", 1, "instructor")
 
     with client.session_transaction() as sess:
         sess["_user_id"] = "testdelete@ucr.edu"
-        
-    response = client.get("/")
-    assert "200 OK" == response.status
-
-    file_path_abs.unlink()
-
-
-def test_file_delete(client: FlaskClient, monkeypatch):
 
     mock_ollama_client = MagicMock()
     fake_embedding = [0.1, -0.2, 0.3, 0.4]
@@ -171,22 +149,25 @@ def test_file_delete(client: FlaskClient, monkeypatch):
     assert b"test_file_delete.txt" in response.data
 
     file_path_rel = Path("1") / "test_file_delete.txt"
-    response = client.post(f"document/{file_path_rel}/delete")
+    response = client.post(f"/document/{file_path_rel}/delete")
 
-    assert "302 FOUND" == response.status
+    assert response.status_code == 302
 
     full_path = Path(upload_folder) / file_path_rel
-    assert full_path.exists()
-    with full_path.open("rb") as f:
-        assert f.read() == b"Test file for CS009A"
-    full_path.unlink()
+    assert not full_path.exists()  # File should be deleted
 
 
-def test_chatroom_conversation_flow(client: FlaskClient):
-    from ucr_chatbot.db.models import add_new_user, add_new_course
+def test_chatroom_conversation_flow(client: FlaskClient, app):
+    with app.app_context():
+        from ucr_chatbot.db.models import add_new_user, add_new_course, add_user_to_course
 
-    add_new_user("test@ucr.edu", "Test", "User")
-    add_new_course("Test Course")
+        add_new_user("test@ucr.edu", "Test", "User")
+        add_new_course("Test Course")
+        add_user_to_course("test@ucr.edu", "Test", "User", 1, "student")
+
+    with client.session_transaction() as sess:
+        sess["_user_id"] = "test@ucr.edu"
+
     course_id = 1
     init_message = "Hello, I need help with my homework."
     response = client.post(
