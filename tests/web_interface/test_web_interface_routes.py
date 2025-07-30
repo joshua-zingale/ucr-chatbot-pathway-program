@@ -1,9 +1,11 @@
 from flask.testing import FlaskClient
 import io
 import os
+import sys
 from pathlib import Path
 from ucr_chatbot.db.models import upload_folder, Users, engine, Session, ParticipatesIn
-from tests.db.helper_functions import *
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from db.helper_functions import *
 from unittest.mock import MagicMock
 from sqlalchemy import insert, select, delete, inspect
 
@@ -104,7 +106,7 @@ def test_file_download(client: FlaskClient, monkeypatch, app):
     )
     assert response.status_code == 200
 
-    file_path_rel = Path("1") / "test_file_download.txt"
+    file_path_rel = "1/test_file_download.txt"
     response = client.get(f"/document/{file_path_rel}/download")
 
     #assert response.status_code == 200
@@ -148,7 +150,7 @@ def test_file_delete(client: FlaskClient, monkeypatch, app):
     assert response.status_code == 200
     assert b"test_file_delete.txt" in response.data
 
-    file_path_rel = Path("1") / "test_file_delete.txt"
+    file_path_rel = "1/test_file_delete.txt"
     response = client.post(f"/document/{file_path_rel}/delete")
 
     assert response.status_code == 302

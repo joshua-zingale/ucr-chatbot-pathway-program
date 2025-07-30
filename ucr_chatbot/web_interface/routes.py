@@ -561,8 +561,8 @@ def delete_document(file_path: str):
     if current_user.is_anonymous:
         abort(403)
 
-    file_path = file_path.replace(os.path.sep, "/")
-    full_path = os.path.join(upload_folder, file_path).replace(os.path.sep, "/")
+    file_path = file_path.replace(os.sep, "/")
+    full_path = str(Path(upload_folder) / file_path)
 
     with Session(engine) as session:
         document = session.query(Documents).filter_by(file_path=file_path).first()
@@ -581,8 +581,7 @@ def delete_document(file_path: str):
 
         course_id = document.course_id
 
-        if os.path.exists(full_path):
-            # os.remove(full_path)  # physical delete optional
+        if Path(full_path).exists():
             set_document_inactive(file_path)
 
     return redirect(url_for(".course_documents", course_id=course_id))
@@ -608,7 +607,7 @@ def download_file(file_path: str):
     :rtype: flask.wrappers.Response
     """
     email = current_user.email
-    file_path = file_path.replace(os.path.sep, "/")
+    file_path = file_path.replace(os.sep, "/")
     with Session(engine) as session:
         document = session.query(Documents).filter_by(file_path=file_path).first()
         if document is None:
@@ -622,8 +621,10 @@ def download_file(file_path: str):
         if not participation:
             abort(403)
 
-    directory, name = os.path.split(file_path)
-    return send_from_directory(os.path.join(upload_folder, directory), name)
+    path_obj = Path(file_path)
+    directory = str(path_obj.parent)
+    name = path_obj.name
+    return send_from_directory(str(Path(upload_folder) / directory), name)
 
 
 @bp.route("/course/<int:course_id>/add_user", methods=["POST"])
