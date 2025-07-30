@@ -155,9 +155,11 @@ def test_file_delete(client: FlaskClient, monkeypatch, app):
 
     assert response.status_code == 302
 
-    full_path = Path(upload_folder) / file_path_rel
-    assert not full_path.exists()  # File should be deleted
-
+    with app.app_context():
+        with Session(engine) as session:
+            document = session.query(Documents).filter_by(file_path=file_path_rel).first()
+            assert document is not None
+            assert not document.is_active
 
 def test_chatroom_conversation_flow(client: FlaskClient, app):
     with app.app_context():
