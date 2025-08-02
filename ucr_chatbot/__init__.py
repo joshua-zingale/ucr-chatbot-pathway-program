@@ -4,7 +4,6 @@ including a public web interface and an API for interacting with the chatbot."""
 from flask import Flask  # type: ignore
 from typing import Mapping, Any
 from pathlib import Path
-import os
 # from .secret import GOOGLE_CLIENT_ID, GOOGLE_SECRET, SECRET_KEY
 
 # from .web_interface.routes import bp as bp
@@ -55,8 +54,8 @@ def create_app(test_config: Mapping[str, Any] | None = None):
 
     oauth.register(  # type: ignore
         name="google",
-        client_id=os.environ.get("GOOGLE_CLIENT_ID"),
-        client_secret=os.environ.get("GOOGLE_SECRET"),
+        client_id=Config.GOOGLE_CLIENT_ID,
+        client_secret=Config.GOOGLE_SECRET,
         server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
         client_kwargs={"scope": "openid profile email"},
     )
