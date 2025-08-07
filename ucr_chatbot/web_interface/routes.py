@@ -11,7 +11,6 @@ from flask import (
     flash,
     current_app,
     Response as FlaskResponse,
-    get_flashed_messages,
     make_response,
 )
 
