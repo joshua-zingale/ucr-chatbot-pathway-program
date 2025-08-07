@@ -100,7 +100,7 @@ def login():
     :return: a redirect response to the dashboard or the login page
     :rtype: flask.Response
     """
-    get_flashed_messages()  # clearing flash() messages
+    # get_flashed_messages()  # clearing flash() messages
     config = cast(Mapping[str, Any], current_app.config)
     max_attempts = cast(int, config.get("MAX_LOGIN_ATTEMPTS", 3))
     cooldown_minutes = 5
@@ -628,7 +628,7 @@ def course_documents(course_id: int):
         except (ValueError, TypeError):
             if full_local_path and full_local_path.exists():
                 full_local_path.unlink()
-            error_msg = "<p style='color:red;'>You can't upload this type of file</p>"
+            flash("You can't upload this type of file", "error")
 
     docs_html = ""
     active_docs = get_active_documents()
