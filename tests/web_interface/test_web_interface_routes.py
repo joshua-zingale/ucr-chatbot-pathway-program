@@ -7,6 +7,7 @@ from ucr_chatbot.db.models import engine, Session
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from db.helper_functions import *
 from unittest.mock import MagicMock
+from flask import get_flashed_messages
 
 from ucr_chatbot.config import Config
 
@@ -76,8 +77,12 @@ def test_file_upload_invalid_extension(client: FlaskClient, app):
         follow_redirects=True  
     )
 
+    flashed_messages = get_flashed_messages(with_categories=False)
+
     assert response.status_code == 200
-    assert b"You can't upload this type of file" in response.data
+    assert "You can't upload this type of file" in flashed_messages
+
+    # assert response.status_code == 200
 
 
 def test_file_download(client: FlaskClient, monkeypatch, app):
