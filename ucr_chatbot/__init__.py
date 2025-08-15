@@ -1,16 +1,13 @@
 """This package contains a Flask application for a tutoring chatbot,
 including a public web interface and an API for interacting with the chatbot."""
 
-from flask import Flask  # type: ignore
+from flask import Flask
 from typing import Mapping, Any
 from pathlib import Path
-# from .secret import GOOGLE_CLIENT_ID, GOOGLE_SECRET, SECRET_KEY
 
-# from .web_interface.routes import bp as bp
 from authlib.integrations.flask_client import OAuth  # type: ignore
 from flask_login import LoginManager  # type: ignore
 from ucr_chatbot.db.models import Users, Session, engine
-from ucr_chatbot.web_interface.routes import bp
 from .config import Config
 
 
@@ -32,23 +29,20 @@ def create_app(test_config: Mapping[str, Any] | None = None):
     if not instance_path.is_dir():
         instance_path.mkdir(parents=True, exist_ok=True)
 
-    # from . import web_interface
-    from . import api
-
     app.config["SESSION_COOKIE_SECURE"] = True
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["MAX_LOGIN_ATTEMPTS"] = 3
 
     login_manager = LoginManager()
     login_manager.init_app(app)  # type: ignore
-    login_manager.login_view = "web_routes.login"  # type: ignore
+    login_manager.login_view = "web_interface.authentication_routes.login"  # type: ignore
 
     @login_manager.user_loader  # type: ignore
     def load_user(user_email: int):  # pyright: ignore[reportUnusedFunction]
         with Session(engine) as session:
             return session.query(Users).get(user_email)
 
-    oauth = OAuth(app)  # type: ignore
+    oauth = OAuth(app)
     oauth.init_app(app)  # type: ignore
 
     oauth.register(  # type: ignore
@@ -61,8 +55,9 @@ def create_app(test_config: Mapping[str, Any] | None = None):
 
     app.oauth = oauth  # type: ignore[attr-defined]
 
-    # app.register_blueprint(web_interface.bp)
-    app.register_blueprint(bp)
+    from ucr_chatbot import web_interface, api
+
+    app.register_blueprint(web_interface.bp)
     app.register_blueprint(api.bp)
 
     return app
