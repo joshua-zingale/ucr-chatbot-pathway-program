@@ -8,7 +8,8 @@ from pathlib import Path
 from authlib.integrations.flask_client import OAuth  # type: ignore
 from flask_login import LoginManager  # type: ignore
 from ucr_chatbot.db.models import Users, Session, engine
-from .config import Config
+from ucr_chatbot.config import Config, FileStorageMode
+from ucr_chatbot.api.file_storage import LocalStorage
 
 
 def create_app(test_config: Mapping[str, Any] | None = None):
@@ -22,6 +23,9 @@ def create_app(test_config: Mapping[str, Any] | None = None):
     app.debug = False
 
     app.config.from_object(Config)
+    match Config.FILE_STORAGE_MODE:
+        case FileStorageMode.LOCAL:
+            app.config["FILE_STORAGE"] = LocalStorage(Path("storage"))
     if test_config:
         app.config.from_mapping(test_config)
 
