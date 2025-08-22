@@ -35,7 +35,6 @@ def create_app(test_config: Mapping[str, Any] | None = None):
 
     app.config["SESSION_COOKIE_SECURE"] = True
     app.config["SESSION_COOKIE_HTTPONLY"] = True
-    app.config["MAX_LOGIN_ATTEMPTS"] = 3
 
     login_manager = LoginManager()
     login_manager.init_app(app)  # type: ignore
@@ -52,12 +51,12 @@ def create_app(test_config: Mapping[str, Any] | None = None):
     oauth.register(  # type: ignore
         name="google",
         client_id=Config.GOOGLE_CLIENT_ID,
-        client_secret=Config.GOOGLE_SECRET,
+        client_secret=Config.GOOGLE_CLIENT_SECRET,
         server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
         client_kwargs={"scope": "openid profile email"},
     )
 
-    app.oauth = oauth  # type: ignore[attr-defined]
+    app.config["OAUTH"] = oauth
 
     from ucr_chatbot import web_interface, api
 
