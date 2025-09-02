@@ -1,11 +1,5 @@
 """Contains a Flask application for a tutoring chatbot,
 including a public web interface and an API for interacting with the chatbot.
-
-There are some utility functions for managing the ucr_chatbot application.
-
-Available commands:
-- db: Manage the database
-- quickstart: Initialize and run the application with mock data
 """
 
 from typing import Mapping, Any
