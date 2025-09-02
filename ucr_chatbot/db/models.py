@@ -213,9 +213,7 @@ def add_new_user(email: str):
             session.rollback()
 
 
-def add_user_to_course(
-    email: str, course_id: int, role: str
-):
+def add_user_to_course(email: str, course_id: int, role: str):
     """Adds a user to the specified course.
     Must be called within a request context.
 
