@@ -41,7 +41,7 @@ def create_app(test_config: Mapping[str, Any] | None = None):
     @login_manager.user_loader  # type: ignore
     def load_user(user_email: int):  # pyright: ignore[reportUnusedFunction]
         with Session(get_engine()) as session:
-            return session.query(Users).get(user_email)
+            return session.get(Users, user_email)
 
     with app.app_context():
         oauth = OAuth(current_app)
