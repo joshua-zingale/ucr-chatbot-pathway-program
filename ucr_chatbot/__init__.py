@@ -57,9 +57,8 @@ def create_app(test_config: Mapping[str, Any] | None = None):
 
         app.config["OAUTH_CLIENT"] = oauth
 
-    from ucr_chatbot import web_interface, api
+    from ucr_chatbot import web_interface
 
     app.register_blueprint(web_interface.bp)
-    app.register_blueprint(api.bp)
 
     return app
