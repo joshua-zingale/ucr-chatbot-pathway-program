@@ -9,7 +9,7 @@ from flask import Flask, current_app
 from flask_login import LoginManager  # type: ignore
 from authlib.integrations.flask_client import OAuth  # type: ignore
 
-from ucr_chatbot.db.models import Users, Session, get_engine
+from ucr_chatbot.db.models import User, Session, get_engine
 from ucr_chatbot.config import Config, app_config
 
 
@@ -41,7 +41,7 @@ def create_app(test_config: Mapping[str, Any] | None = None):
     @login_manager.user_loader  # type: ignore
     def load_user(user_email: int):  # pyright: ignore[reportUnusedFunction]
         with Session(get_engine()) as session:
-            return session.get(Users, user_email)
+            return session.get(User, user_email)
 
     with app.app_context():
         oauth = OAuth(current_app)
