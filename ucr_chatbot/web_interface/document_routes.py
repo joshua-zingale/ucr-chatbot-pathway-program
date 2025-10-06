@@ -60,12 +60,12 @@ def post_document():
 
     if "file" not in request.files:
         flash("No file part", "error")
-        return redirect(request.referrer, 400)
+        return redirect(request.referrer, 303)
 
     file: FileStorage = request.files["file"]
     if not file.filename:
         flash("No selected file", "error")
-        return redirect(request.referrer, 400)
+        return redirect(request.referrer, 303)
 
     file_data = io.BytesIO(file.stream.read())
     file_hash = hash_bytes(file_data)
@@ -86,7 +86,7 @@ def post_document():
                 f"An identical file, '{document.name}', has already been uploaded for this course.",
                 "error",
             )
-            return redirect(request.referrer or "/", code=400)
+            return redirect(request.referrer or "/", 303)
 
     segments = None
     file_data.seek(0)
@@ -94,8 +94,12 @@ def post_document():
         segments = parse_file(file_data, file_extension)
     except FileParsingError:
         flash("You can't upload this type of file", "error")
-        return redirect(request.referrer or "/", 400)
-
+        return redirect(request.referrer or "/", 303)
+    
+    if len(segments) == 0:
+        flash("Could not understand any textual data from the uploaded file.", "error")
+        return redirect(request.referrer or "/", 303)
+    
     with Session(get_engine()) as session:
         document = Document(
             name=data.name,

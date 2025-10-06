@@ -2,11 +2,13 @@
 
 from io import BufferedIOBase
 from io import BytesIO
+import typing as t
+
 import speech_recognition as sr
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
 import tempfile
-from typing import List, IO
+
 from pypdf import PdfReader
 from pathlib import Path
 
@@ -24,7 +26,25 @@ class InvalidFileExtensionError(FileParsingError):
         super().__init__(f'Cannot interpret file with extension "{extension}"')
 
 
-def parse_file(file: IO[bytes], extension: str) -> list[str]:
+_P = t.ParamSpec("_P")
+def _to_valid_segments(f: t.Callable[_P, t.Iterable[str]]) -> t.Callable[_P, list[str]]:
+    def wrapped(*args: _P.args, **kwargs: _P.kwargs) -> list[str]:
+        return list(filter(_is_valid_segment, f(*args, **kwargs)))
+    return wrapped
+
+
+def _is_valid_segment(segment: str):    
+    if len(segment) == 0:
+        return False
+    
+    num_alpha = 0
+    for char in segment:
+        num_alpha += char.isalpha()
+    
+    return num_alpha / len(segment) > 0.35
+
+@_to_valid_segments
+def parse_file(file: t.IO[bytes], extension: str) -> list[str]:
     """Parses a file into text.
 
     :param file: A file-like object to be parsed.
@@ -48,20 +68,17 @@ def parse_file(file: IO[bytes], extension: str) -> list[str]:
             raise InvalidFileExtensionError(extension)
 
 
-def _parse_txt(txt_file: BufferedIOBase, lenseg=None) -> List[str]:
+def _parse_txt(txt_file: BufferedIOBase, lenseg=None) -> list[str]:
     """Parses a text file and removes whitespace. The function either returns
     a list of strings or a string
 
     :param txt_file: text file to be parsed
-    :type txt_file: .txt
 
     :param lenseg: for segmenting the text, maximum desired length in characters of the segment,
     defaults to None. Also an indicator if the user wants to segment the file
-    :type lenseg: int
 
     :return: string of all the text in the document or list of strings, where each item in the
     list is a segment of the text file
-    :rtype: List[str] or str
     """
 
     if lenseg is not None:
@@ -93,7 +110,7 @@ def _parse_txt(txt_file: BufferedIOBase, lenseg=None) -> List[str]:
         return [content]
 
 
-def _parse_audio(audio_file: str, time=None, segments=False) -> List[str]:
+def _parse_audio(audio_file: str, time=None, segments=False) -> list[str]:
     """Parses a .wav file or a .mp3 file into text. This function utilizes
     the pydub and speech_recognition libraries to transcribe the audio.
 
@@ -110,7 +127,6 @@ def _parse_audio(audio_file: str, time=None, segments=False) -> List[str]:
     :type segments: bool
 
     :return: List of strings (segments) or text transcription
-    :rtype: List[str] or str
     """
 
     current_directory = Path.cwd()
@@ -120,17 +136,12 @@ def _parse_audio(audio_file: str, time=None, segments=False) -> List[str]:
     # Load audio
     if audio_file.endswith(".mp3"):
         audio = AudioSegment.from_mp3(audio_file)
-        print("Mp3 file loaded")
     else:
         audio = AudioSegment.from_wav(audio_file)
-        print("Wav file loaded")
-
-    print("let us begin")
 
     # Creating a temporary directory to store chunks in
 
     with tempfile.TemporaryDirectory(dir=str(current_directory)) as temp_dir_path:
-        print(f"Temporary directory created at: {temp_dir_path}")
 
         if time is not None:
             # Setup chunking
@@ -145,7 +156,6 @@ def _parse_audio(audio_file: str, time=None, segments=False) -> List[str]:
                 chunk = audio[start_time:end_time]
                 chunkname = "{0}_".format(index) + audio_file
                 chunk_path = str(Path(temp_dir_path) / chunkname)
-                print("I am exporting", chunk_path)
                 chunk.export(chunk_path, format="wav")
 
                 r = sr.Recognizer()
@@ -169,14 +179,14 @@ def _parse_audio(audio_file: str, time=None, segments=False) -> List[str]:
 
         else:
             chunks = split_on_silence(audio, min_silence_len=1100, silence_thresh=-70)
-            print("chunks are being made")
+
             # The above line splits the .wav file into chunks based on silence
             # min_silence_len and silence_thresh were chosen to detect the end of
             # a sentence
             for index, chunk in enumerate(chunks):
                 chunkname = "{0}_".format(index) + audio_file
                 chunk_path = str(Path(temp_dir_path) / chunkname)
-                print("I am exporting", chunk_path)
+
                 chunk.export(chunk_path, format="wav")
 
                 r = sr.Recognizer()
@@ -194,7 +204,7 @@ def _parse_audio(audio_file: str, time=None, segments=False) -> List[str]:
                     )
                 except sr.UnknownValueError:  # type: ignore
                     print("I don't recognize your audio")
-    print("Temporary directory and its contents have been removed.")
+
     if segments:
         return l  # type: ignore
     else:
