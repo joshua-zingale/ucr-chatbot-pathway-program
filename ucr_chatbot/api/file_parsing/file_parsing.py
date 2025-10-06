@@ -27,21 +27,25 @@ class InvalidFileExtensionError(FileParsingError):
 
 
 _P = t.ParamSpec("_P")
+
+
 def _to_valid_segments(f: t.Callable[_P, t.Iterable[str]]) -> t.Callable[_P, list[str]]:
     def wrapped(*args: _P.args, **kwargs: _P.kwargs) -> list[str]:
         return list(filter(_is_valid_segment, f(*args, **kwargs)))
+
     return wrapped
 
 
-def _is_valid_segment(segment: str):    
+def _is_valid_segment(segment: str):
     if len(segment) == 0:
         return False
-    
+
     num_alpha = 0
     for char in segment:
         num_alpha += char.isalpha()
-    
+
     return num_alpha / len(segment) > 0.35
+
 
 @_to_valid_segments
 def parse_file(file: t.IO[bytes], extension: str) -> list[str]:
@@ -142,7 +146,6 @@ def _parse_audio(audio_file: str, time=None, segments=False) -> list[str]:
     # Creating a temporary directory to store chunks in
 
     with tempfile.TemporaryDirectory(dir=str(current_directory)) as temp_dir_path:
-
         if time is not None:
             # Setup chunking
             chunk_length_ms = time * 1000
