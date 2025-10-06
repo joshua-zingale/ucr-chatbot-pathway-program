@@ -95,11 +95,11 @@ def post_document():
     except FileParsingError:
         flash("You can't upload this type of file", "error")
         return redirect(request.referrer or "/", 303)
-    
+
     if len(segments) == 0:
         flash("Could not understand any textual data from the uploaded file.", "error")
         return redirect(request.referrer or "/", 303)
-    
+
     with Session(get_engine()) as session:
         document = Document(
             name=data.name,
