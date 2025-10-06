@@ -124,6 +124,10 @@ ul.flashes li.warning {
   color: black;
 }
 
+a {
+  color: #FFB81C; 
+}
+
 a.model-link {
   color: #FFB81C; 
   text-decoration: none;
