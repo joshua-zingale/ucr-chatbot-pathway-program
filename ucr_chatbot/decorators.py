@@ -41,7 +41,7 @@ def roles_required(
             if not current_user.is_authenticated:
                 flash("Please log in to access this page.", "warning")
                 return redirect(
-                    url_for("web_interface.authentication_routes.login"), 401
+                    url_for("web_interface.authentication_routes.login"), 302
                 )
 
             with Session(get_engine()) as session:
@@ -53,7 +53,7 @@ def roles_required(
 
                 if not record or record.role not in allowed_roles:
                     flash("You do not have permission to access this page.", "danger")
-                    return redirect(url_for("web_interface.general_routes.home"), 403)
+                    return redirect(url_for("web_interface.general_routes.home"), 303)
 
                 g.role = record.role
 
@@ -82,12 +82,12 @@ def consent_required(
 
             if not course_id:
                 flash("Missing course context.", "danger")
-                return redirect(url_for("web_interface.general_routes.home"), 400)
+                return redirect(url_for("web_interface.general_routes.home"), 303)
 
             if not current_user.is_authenticated:
                 flash("Please log in to access this page.", "warning")
                 return redirect(
-                    url_for("web_interface.authentication_routes.login"), 401
+                    url_for("web_interface.authentication_routes.login"), 302
                 )
 
             with Session(get_engine()) as session:
@@ -99,7 +99,7 @@ def consent_required(
 
                 if not participation:
                     flash("You do not have permission to access this page.", "danger")
-                    return redirect(url_for("web_interface.general_routes.home"), 403)
+                    return redirect(url_for("web_interface.general_routes.home"), 303)
 
                 # Get the next consent form for this course to which the current user has not consented
                 consent_form = (

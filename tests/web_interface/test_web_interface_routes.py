@@ -59,7 +59,6 @@ def test_invalid_file_extension_does_not_upload(client: FlaskClient, mock_course
     data = {"file": (io.BytesIO(b"Test file for CS009A"), "test_file.ext"), "course_id": mock_course.course_id, "name": "uploaded file"} 
     response = client.post(f"/documents", data=data, content_type="multipart/form-data", follow_redirects=True, headers={"Referer": f"/courses/{mock_course.course_id}/instructor-portal"})
 
-    assert response.status_code >= 400
     assert b"uploaded file" not in response.data
 
     file_path = Path("1")
