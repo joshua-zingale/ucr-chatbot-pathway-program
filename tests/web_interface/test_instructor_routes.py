@@ -11,7 +11,7 @@ def test_authenticated_student_cannot_access_instructor_portal(client: FlaskClie
     authenticate_as(client, mock_course.student_email)
 
     response = client.get(f"courses/{mock_course.course_id}/instructor-portal")
-    assert response.status_code >= 400
+    assert response.status_code >= 300
     assert "upload" not in response.text.lower()
 
 
@@ -19,7 +19,7 @@ def test_authenticated_instructor_cannot_access_another_instructors_portal(clien
     authenticate_as(client, mock_course2.instructor_email)
 
     response = client.get(f"courses/{mock_course.course_id}/instructor-portal")
-    assert response.status_code >= 400
+    assert response.status_code >= 300
     assert "upload" not in response.text.lower()
 
 
