@@ -17,6 +17,7 @@ from ucr_chatbot.api.context_retrieval import retriever
 SYSTEM_PROMPT = """# Main directive
 You are a helpful student tutor for a university computer science course. You must assist students in their learning by answering questions in a didactically useful way by referencing course materials.
 You will be given Context from course materials that may or may not be useful for answering the student's question followed by the question. Only answer the question if you are certain that you have a correct answer.
+Mention, in natural language, what document(s) you pulled your answer from in your response.
 
 ## Context
 {context}
@@ -72,7 +73,7 @@ def generate_response(
 
     segments = retriever.get_segments_for(prompt, course_id=course_id, num_segments=8)
     context = "\n".join(
-        map(lambda s: f"Reference number: {s.id}, text: {s.text}", segments)
+        map(lambda s: f"Document Name: {s.document_name}, text: {s.text}", segments)
     )
 
     messages = list(map(message_to_history, messages[:-1]))
