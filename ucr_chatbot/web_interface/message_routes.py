@@ -198,6 +198,7 @@ def get_message_sources(message_id: int):
             .join(Reference, Segment.id == Reference.segment_id)
             .join(Document, Segment.document_id == Document.id)
             .where(Reference.message_id == message_id)
+            .order_by(Reference.relevance.desc())
             .all(),
         )
 
