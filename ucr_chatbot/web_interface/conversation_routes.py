@@ -290,10 +290,16 @@ def post_ai_response(conversation_id: int):
 
         session.commit()
 
+        count = 0
         for source in response.sources:
             session.add(
-                Reference(message_id=bot_message.id, segment_id=source.segment_id)
+                Reference(
+                    message_id=bot_message.id,
+                    segment_id=source.segment_id,
+                    relevance=len(response.sources) - count,
+                )
             )
+            count += 1
 
         session.commit()
         return jsonify(

@@ -325,6 +325,7 @@ class Reference(base):
     segment_id = Column(
         Integer, ForeignKey("segments.id", ondelete="CASCADE"), primary_key=True
     )
+    relevance = Column(Integer)
 
 
 def add_new_user(email: str):
