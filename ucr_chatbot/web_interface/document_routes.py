@@ -18,11 +18,11 @@ from werkzeug.datastructures import FileStorage
 from pydantic import BaseModel as PydanticModel
 
 from ucr_chatbot.decorators import roles_required
-from ucr_chatbot.db.models import Session, get_engine, Document, Segment, Embedding
+from ucr_chatbot.db.models import Session, get_engine, Document
+from ucr_chatbot.db.util import add_document_to_course
 from ucr_chatbot.api.file_storage import get_storage_service
-from ucr_chatbot.api.file_parsing import parse_file, FileParsingError
-from ucr_chatbot.api.embedding import embed_text
-from ucr_chatbot.api.hashing import hash_bytes
+from ucr_chatbot.api.file_parsing import FileParsingError
+
 
 bp = Blueprint("document_routes", __name__)
 
@@ -56,7 +56,6 @@ def post_document():
     """Creates a document"""
     data = PostDocumentRequest.model_validate(request.form.to_dict())
     course_id = course_from_form({})
-    storage_service = get_storage_service()
 
     if "file" not in request.files:
         flash("No file part", "error")
@@ -68,58 +67,21 @@ def post_document():
         return redirect(request.referrer, 303)
 
     file_data = io.BytesIO(file.stream.read())
-    file_hash = hash_bytes(file_data)
 
     file_extension = PurePath(file.filename).suffix[1:]
 
-    with Session(get_engine()) as session:
-        document = (
-            session.query(Document)
-            .filter_by(
-                file_hash=file_hash,
-                course_id=course_id,
-            )
-            .first()
-        )
-        if document:
-            flash(
-                f"An identical file, '{document.name}', has already been uploaded for this course.",
-                "error",
-            )
-            return redirect(request.referrer or "/", 303)
-
-    segments = None
-    file_data.seek(0)
     try:
-        segments = parse_file(file_data, file_extension)
-    except FileParsingError:
-        flash("You can't upload this type of file", "error")
-        return redirect(request.referrer or "/", 303)
-
-    if len(segments) == 0:
-        flash("Could not understand any textual data from the uploaded file.", "error")
-        return redirect(request.referrer or "/", 303)
-
-    with Session(get_engine()) as session:
-        document = Document(
+        add_document_to_course(
+            file_data=file_data,
             name=data.name,
-            file_hash=file_hash,
+            extension=file_extension,
             course_id=course_id,
-            file_extension=file_extension,
         )
-        session.add(document)
-        session.flush()
-        for seg in segments:
-            segment = Segment(text=seg, document_id=document.id)
-            session.add(segment)
-            session.flush()
-            session.add(Embedding(vector=embed_text(seg), segment_id=segment.id))
-        session.commit()
-
-        file_path = document.full_file_path
-
-    file_data.seek(0)
-    storage_service.save_file(file_data, file_path)
+    except FileParsingError:
+        flash("Could not understand any textual data from the uploaded file.", "error")
+    except ValueError as e:
+        flash(str(e), "error")
+        return redirect(request.referrer or "/", 303)
 
     flash("File uploaded and processed successfully!", "success")
     return redirect(request.referrer or "/")
