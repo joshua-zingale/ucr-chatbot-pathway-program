@@ -8,6 +8,7 @@ import argparse
 import typing as t
 from sqlalchemy import inspect, text
 import sys
+from pathlib import Path
 
 from ucr_chatbot.db.models import (
     get_engine,
@@ -21,6 +22,8 @@ from ucr_chatbot.db.models import (
     ParticipatesIn,
     Limit,
 )
+from ucr_chatbot.db import util as db_util
+from ucr_chatbot.api.file_parsing import FileParsingError
 
 
 def main(arg_list: list[str] | None = None):
@@ -81,6 +84,11 @@ def main(arg_list: list[str] | None = None):
         participates_in_parser.add_argument(
             "role", choices=["instructor", "assistant", "student"]
         )
+
+        user_parser = create_sub.add_parser("document")
+        user_parser.add_argument("filepath")
+        user_parser.add_argument("name")
+        user_parser.add_argument("course_id", type=int)
 
         limit_parser = create_sub.add_parser("limit")
         limit_parser.add_argument("course_id", type=int)
@@ -191,8 +199,25 @@ def main(arg_list: list[str] | None = None):
                     print(
                         f"Limit with id '{limit.id}' has been added for the course with id '{args.course_id}'"
                     )
+            case "document":
+                filepath = Path(args.filepath)
+                name = str(args.name)
+                course_id = int(args.course_id)
+                extension = filepath.suffix[1:]
+
+                with open(filepath, "rb") as f:
+                    try:
+                        db_util.add_document_to_course(f, name, extension, course_id)
+                    except FileParsingError as e:
+                        error(f"Could not parse file: {e}")
+                    except ValueError as e:
+                        error(str(e))
+
+                print(
+                    f"Added '{name}' as a document for the course with ID {course_id}"
+                )
             case type_:
-                raise error(f"Invalid entity type '{type_}'.")
+                error(f"Invalid entity type '{type_}'.")
     elif args.command == "search":
         match args.entity_type:
             case "course":

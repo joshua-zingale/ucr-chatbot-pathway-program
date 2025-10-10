@@ -1,9 +1,9 @@
-from io import BytesIO
+import typing as t
 
 from cryptography.hazmat.primitives import hashes
 
 
-def hash_bytes(file: BytesIO, chunk_size: int = 4096) -> str:
+def hash_bytes(file: t.BinaryIO, chunk_size: int = 4096) -> str:
     """Returns a hex string for a file's crytographically unique hash."""
     digest = hashes.Hash(hashes.SHA256())
     while True:
