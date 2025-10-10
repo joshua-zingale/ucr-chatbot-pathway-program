@@ -28,4 +28,4 @@ tests/.DS_Store
 storage/
 test_storage/
 
-bin/
+nohup.out

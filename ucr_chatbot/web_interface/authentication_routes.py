@@ -81,9 +81,8 @@ def login_google() -> Union[FlaskResponse, tuple[str, int]]:
     """
 
     google = app_config.OAUTH_CLIENT.google  # type: ignore
-    redirect_uri = url_for(
-        "web_interface.authentication_routes.authorize_google", _external=True
-    )
+    redirect_uri = f"{app_config.ROOT_URL}/authorize/google"
+
     return google.authorize_redirect(redirect_uri)  # type: ignore
 
 
