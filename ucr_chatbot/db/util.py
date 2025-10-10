@@ -1,4 +1,4 @@
-import io
+import typing as t
 
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,7 @@ from .models import get_engine, Document, Segment, Embedding
 
 
 def add_document_to_course(
-    file_data: io.BytesIO, name: str, extension: str, course_id: int
+    file_data: t.BinaryIO, name: str, extension: str, course_id: int
 ) -> None:
     """Adds a document to a course, parsing it into segments for the RAG database.
 
