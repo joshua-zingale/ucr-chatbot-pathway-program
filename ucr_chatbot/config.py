@@ -66,6 +66,7 @@ class Config:
 
     GOOGLE_CLIENT_ID = get_non_empty_env("GOOGLE_CLIENT_ID")
     GOOGLE_CLIENT_SECRET = get_non_empty_env("GOOGLE_CLIENT_SECRET")
+    ROOT_URL = get_non_empty_env("ROOT_URL", "http://localhost:5000")
 
     REQUIRE_OAUTH = get_non_empty_env("REQUIRE_OAUTH", "true").lower() == "true"
 
@@ -123,6 +124,13 @@ class ConfigProxy:
     def GOOGLE_CLIENT_SECRET(self) -> str:  # noqa: N802
         """The client secret for Google OAuth."""
         return current_app.config["GOOGLE_CLIENT_SECRET"]
+
+    @property
+    @no_type_check
+    def ROOT_URL(self) -> str:  # noqa: N802
+        """The public-facing root url for this webiste.
+        This is needed to determine the OAuth allowed redirect url."""
+        return current_app.config["ROOT_URL"]
 
     @property
     @no_type_check
