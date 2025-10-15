@@ -58,14 +58,12 @@ def parse_file(file: t.IO[bytes], extension: str) -> list[str]:
     """
 
     match extension.lower():
-        case "txt":
+        case "txt" | "md" | "py" | "c" | "cpp" | "h" | "hpp":
             return _parse_txt(file, lenseg=1000)
         case "wav":
             return _parse_audio(file, segments=True)
         case "mp3":
             return _parse_audio(file, segments=True)
-        case "md":
-            return _parse_txt(file, 1000)
         case "pdf":
             return _parse_pdf(file, chars_per_seg=1000, overlap=2)
         case _:
