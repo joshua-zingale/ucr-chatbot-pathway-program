@@ -65,7 +65,7 @@ def parse_file(file: t.IO[bytes], extension: str) -> list[str]:
         case "mp3":
             return _parse_audio(file, segments=True)
         case "md":
-            return _parse_md(file, 1000)
+            return _parse_txt(file, 1000)
         case "pdf":
             return _parse_pdf(file, chars_per_seg=1000, overlap=2)
         case _:
