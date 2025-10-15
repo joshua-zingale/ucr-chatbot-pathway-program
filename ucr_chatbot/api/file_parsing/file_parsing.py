@@ -72,7 +72,7 @@ def parse_file(file: t.IO[bytes], extension: str) -> list[str]:
             raise InvalidFileExtensionError(extension)
 
 
-def _parse_txt(txt_file: BufferedIOBase, lenseg=None) -> list[str]:
+def _parse_txt(txt_file: BufferedIOBase, lenseg: int = 1000) -> list[str]:
     """Parses a text file and removes whitespace. The function either returns
     a list of strings or a string
 
@@ -85,33 +85,7 @@ def _parse_txt(txt_file: BufferedIOBase, lenseg=None) -> list[str]:
     list is a segment of the text file
     """
 
-    if lenseg is not None:
-        l = []
-        content = ""  # full file content
-        bigline = ""  # for segmenting purposes
-
-        count = 0  # working character count
-        tempstr = str(txt_file.read())
-        new = tempstr.replace("\\n", "\n")[2:-1]
-        for line in new:
-            count = count + len(line)
-            bigline = bigline + line.strip() + ""
-
-            if count > lenseg or bigline.endswith("."):
-                l.append(bigline)
-                # resetting
-                count = 0
-                bigline = ""
-        if len(bigline) > 0:
-            l.append(bigline)
-        return l
-    else:
-        content = ""  # Full file content
-        tempstr = str(txt_file.read())
-        new = tempstr.replace("\\n", "\n")[2:-1]
-        for line in new:
-            content = content + line.strip() + ""
-        return [content]
+    return list(generate_overlapping_segments(txt_file.read().decode().replace("\\n", "\n"), lenseg, 0.15))
 
 
 def _parse_audio(audio_file: str, time=None, segments=False) -> list[str]:
@@ -315,3 +289,27 @@ def _parse_md(md_file: BufferedIOBase, chars_per_seg: int) -> list[str]:
     #     print("------------------------------------")
 
     return segments
+
+
+def generate_overlapping_segments(s: str, max_length: int, overlap_percentage: float) -> t.Generator[str, None, None]:
+    """
+    Generates segments of a string with a specified maximum length and overlap.
+    """
+    n = len(s)
+
+    overlap_length = int(max_length * overlap_percentage)
+
+    step = max(1, max_length - overlap_length)
+
+    start_index = 0
+    while start_index < n:
+        end_index = start_index + max_length
+
+        segment = s[start_index:end_index]
+        
+        yield segment
+
+        if end_index >= n:
+            break
+
+        start_index += step
