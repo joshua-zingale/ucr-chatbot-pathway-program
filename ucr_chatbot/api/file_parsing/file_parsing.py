@@ -83,7 +83,11 @@ def _parse_txt(txt_file: BufferedIOBase, lenseg: int = 1000) -> list[str]:
     list is a segment of the text file
     """
 
-    return list(generate_overlapping_segments(txt_file.read().decode().replace("\\n", "\n"), lenseg, 0.15))
+    return list(
+        generate_overlapping_segments(
+            txt_file.read().decode().replace("\\n", "\n"), lenseg, 0.15
+        )
+    )
 
 
 def _parse_audio(audio_file: str, time=None, segments=False) -> list[str]:
@@ -289,7 +293,9 @@ def _parse_md(md_file: BufferedIOBase, chars_per_seg: int) -> list[str]:
     return segments
 
 
-def generate_overlapping_segments(s: str, max_length: int, overlap_percentage: float) -> t.Generator[str, None, None]:
+def generate_overlapping_segments(
+    s: str, max_length: int, overlap_percentage: float
+) -> t.Generator[str, None, None]:
     """
     Generates segments of a string with a specified maximum length and overlap.
     """
@@ -304,7 +310,7 @@ def generate_overlapping_segments(s: str, max_length: int, overlap_percentage: f
         end_index = start_index + max_length
 
         segment = s[start_index:end_index]
-        
+
         yield segment
 
         if end_index >= n:

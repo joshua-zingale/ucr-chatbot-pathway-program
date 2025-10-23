@@ -1,3 +1,5 @@
+import threading
+
 from sqlalchemy import (
     Engine,
     create_engine,
@@ -24,20 +26,26 @@ from pathlib import PurePath
 
 from flask_login import UserMixin  # type: ignore
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import g
 import markdown
 
 
 from ucr_chatbot.config import app_config
 
+_global_db_engine: Engine | None = None
+_engine_lock = threading.Lock()
+
 
 def get_engine() -> Engine:
     """Gets the database engine instance. Must be called from within a request context."""
-    if g.get("_db_engine") is None:
-        g._db_engine = create_engine(
-            f"""postgresql+psycopg2://{app_config.DB_USER}:{app_config.DB_PASSWORD}@{app_config.DB_URL}/{app_config.DB_NAME}"""
-        )
-    return g._db_engine
+    global _global_db_engine
+
+    if _global_db_engine is None:
+        with _engine_lock:
+            if _global_db_engine is None:
+                _global_db_engine = create_engine(
+                    f"""postgresql+psycopg2://{app_config.DB_USER}:{app_config.DB_PASSWORD}@{app_config.DB_URL}/{app_config.DB_NAME}"""
+                )
+    return _global_db_engine
 
 
 base = declarative_base()
