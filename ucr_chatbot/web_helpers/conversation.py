@@ -1,5 +1,5 @@
 from typing import cast, Optional
-from flask import g
+from flask import g, abort
 from flask_login import current_user  # type: ignore
 from sqlalchemy.orm import Session
 from pydantic import BaseModel as PydanticModel
@@ -10,25 +10,10 @@ from ucr_chatbot.db.models import (
     Message,
     MessageType,
     ConversationState,
+    Course,
 )
 from ucr_chatbot.api.language_model import LanguageModelClient, ContentDict
 from ucr_chatbot.api.context_retrieval import retriever
-
-SYSTEM_PROMPT = """# Main directive
-You are a helpful student tutor for a university computer science course. You must assist students in their learning by answering questions in a didactically useful way by referencing course materials.
-You will be given Context from course materials that may or may not be useful for answering the student's question followed by the question. Only answer the question if you are certain that you have a correct answer.
-Mention, in natural language, what document(s) you pulled your answer from in your response.
-
-## Context
-{context}
-
-## Question
-{question}
-
-## Further instructions
-You may provide any relevant code that is in the Context; however, you should not provide code for students that is not in the Context because doing so could solve homework assignments for the students, which you should not do.
-If the context is not relevant to the student's question, and if it is not a follow up question, then you should tell the student, "I cannot find any relevant course materials to help answer your question. Either reword your question or reach out to your instructional faculty. There may be ULA's available to help. You can check their availability [here](https://ula.cs.ucr.edu/calendar)."
-"""
 
 CHARACTERS_PER_TOKEN = 4
 MAX_TOKENS_PER_INTERACTION = 10_000
@@ -41,7 +26,7 @@ MAX_CHARACTERS_PER_REQUEST = (
 def generate_response(
     client: LanguageModelClient,
     conversation_id: int,
-    history: int = 5,
+    history: int = 20,
     max_tokens: int = MAX_RESPONSE_TOKENS,
     stop_sequences: list[str] | None = None,
 ) -> Optional["GenerationResponse"]:
@@ -73,12 +58,34 @@ def generate_response(
 
     segments = retriever.get_segments_for(prompt, course_id=course_id, num_segments=8)
     context = "\n".join(
-        map(lambda s: f"Document Name: {s.document_name}, text: {s.text}", segments)
+        map(lambda s: f"##Document Name: {s.document_name}\n{s.text}", segments)
     )
 
     messages = list(map(message_to_history, messages[:-1]))
 
-    prompt_with_context = SYSTEM_PROMPT.format(context=context, question=prompt)
+    with Session(get_engine()) as session:
+        course = session.get(Course, course_id)
+        if course is None:
+            abort(404)
+
+        if course.chatbot_instructions is not None:  # type: ignore
+            messages.insert(
+                0,
+                {"role": "user", "parts": [{"text": str(course.chatbot_instructions)}]},
+            )
+
+    if len(context) > 0:
+        prompt_with_context = f"""The following document segments may or may not be relevant to the message to follow. If any is relevant, reference the document by name.
+# Documents
+{context}
+
+## Document note
+Only reference them it it makes sense in this context.
+
+# Message
+{prompt}"""
+    else:
+        prompt_with_context = prompt
 
     response = client.get_response(
         contents=messages

@@ -11,6 +11,7 @@ from . import message_routes
 from . import limit_routes
 from . import document_routes
 from . import participates_in_routes
+from . import course_routes
 from flask import Blueprint
 
 bp = Blueprint("web_interface", __name__, url_prefix="")
@@ -25,3 +26,4 @@ bp.register_blueprint(message_routes.bp, url_prefix="")
 bp.register_blueprint(limit_routes.bp, url_prefix="")
 bp.register_blueprint(document_routes.bp, url_prefix="")
 bp.register_blueprint(participates_in_routes.bp, url_prefix="")
+bp.register_blueprint(course_routes.bp, url_prefix="")

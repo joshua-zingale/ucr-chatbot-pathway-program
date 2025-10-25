@@ -147,4 +147,48 @@ ParticipatesInsForms.forEach((form) => {
   });
 });
 
+
+document.addEventListener('DOMContentLoaded', function() {
+  const patchForms = document.querySelectorAll('form[method="patch" i]');
+
+  patchForms.forEach(form => {
+      form.addEventListener('submit', function(event) {
+          event.preventDefault();
+
+          const currentForm = event.target;
+          const url = currentForm.getAttribute('action');
+          const formData = new FormData(currentForm);
+          const successMessage = currentForm.getAttribute('data-success-message') || 'Data updated successfully!';
+          
+          const data = {};
+          for (const [key, value] of formData.entries()) {
+              data[key] = value;
+          }
+
+          fetch(url, {
+              method: 'PATCH',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(data)
+          })
+          .then(response => {
+              if (response.ok) {
+                  alert(successMessage);
+              } else {
+                  response.text().then(text => {
+                      alert(`Error updating data. Server responded: ${response.status} - ${text.substring(0, 100)}...`);
+                  }).catch(() => {
+                      alert(`Error updating data. Status: ${response.status}`);
+                  });
+              }
+          })
+          .catch(error => {
+              console.error('Network Error:', error);
+              alert('A network error occurred. Could not connect to the server.');
+          });
+      });
+  });
+});
+
 // loadDocumentList();

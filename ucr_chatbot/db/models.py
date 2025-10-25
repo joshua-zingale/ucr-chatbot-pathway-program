@@ -172,6 +172,10 @@ class Course(base):
     __tablename__ = "courses"
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String)
+    chatbot_instructions = Column(
+        Text,
+        default="You are a helpful student tutor. Answer any questions that they may have in a pedagogically sound manner.",
+    )
 
     conversations = relationship(
         "Conversation",
