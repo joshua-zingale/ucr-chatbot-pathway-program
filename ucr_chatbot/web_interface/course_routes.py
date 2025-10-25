@@ -44,7 +44,7 @@ def get_course(course_id: int):
         )
 
 
-@bp.patch("/course/<int:course_id>")
+@bp.patch("/courses/<int:course_id>")
 @login_required
 @roles_required(["instructor"], get_course_from_url)
 def patch_course(course_id: int):
