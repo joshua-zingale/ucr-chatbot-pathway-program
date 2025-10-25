@@ -9,7 +9,19 @@
 {% block body %}
     <section style="margin-left: 20px; margin-right: 20px">
         
-        <h1>Files</h1>
+        <h1>Chatbot</h1>
+
+        <div class="card">
+            <h3>Chatbot Instructions</h3>
+            <p>
+                These are the instructions that the chatbot will reference when responding in the chat interface.
+            </p>
+            <form method=patch action="{{ url_for("web_interface.course_routes.patch_course", course_id=course.id) }}" enctype=multipart/form-data data-success-message="Chatbot instructions updated.">
+                <textarea style="max-width: none;" type=text name=chatbot_instructions required>{% if course.chatbot_instructions is not none %} {{course.chatbot_instructions}} {% endif%}</textarea>
+                <input style="display:block;" type=submit value="Set Instructions">
+            </form>
+        </div>
+
         <div class="card">
             <h3>Upload a File</h3>
             <form method=post action="{{ url_for("web_interface.document_routes.post_document")}}" enctype=multipart/form-data id="uploadForm" onsubmit="disableUploadButton()">
