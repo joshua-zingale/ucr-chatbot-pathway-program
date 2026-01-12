@@ -50,11 +50,13 @@ source = ["ucr_chatbot"]
 typeCheckingMode = "strict"
 include = [
     "ucr_chatbot",
+    "data-analysis/scripts"
 ]
 
 [tool.ruff]
 include = [
-    "ucr_chatbot/**.py"
+    "ucr_chatbot/**.py",
+    "data-analysis/scripts/**.py"
 ]
 
 [tool.ruff.lint]
